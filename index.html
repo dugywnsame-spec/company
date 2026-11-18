@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>오늘도 출근 — 회사생활 시뮬레이터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+:root{--ink:#1b2238;--sub:#6b7390;--line:#e4e8f2;--g-main:linear-gradient(135deg,#5b8cff,#8a5cff);--g-warm:linear-gradient(135deg,#ff7a59,#ffb347);--g-green:linear-gradient(135deg,#22c55e,#14b8a6);--g-red:linear-gradient(135deg,#ff5f6d,#ff9a5a);--g-gold:linear-gradient(135deg,#f6d365,#fda085)}
+html,body{margin:0}
+body{min-height:100vh;color:var(--ink);font-family:'Noto Sans KR',-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.6;word-break:keep-all;
+ background:radial-gradient(1000px 600px at 0% -10%,rgba(109,93,252,.45),transparent 60%),radial-gradient(800px 500px at 110% 0%,rgba(0,194,255,.28),transparent 60%),radial-gradient(900px 700px at 50% 120%,rgba(255,94,138,.22),transparent 60%),linear-gradient(160deg,#121735,#1e1b4b 55%,#0e2742);background-attachment:fixed}
+#app{max-width:880px;margin:0 auto;padding:16px 14px 60px}
+h1,h2,h3{margin:0;font-weight:400}
+.disp{font-family:'Black Han Sans',sans-serif;font-weight:400;letter-spacing:.3px}
+.dlg{font-family:'Gowun Dodum',sans-serif}
+/* HUD */
+.hud{background:linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:22px;color:#fff;padding:14px 16px 16px;margin-bottom:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.hud-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px}
+.cbadge{padding:4px 12px;border-radius:999px;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.hud-top .date{font-family:'Black Han Sans';font-size:18px;margin-left:auto}
+.hud-top .age{opacity:.85}
+.hud-mid{display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap}
+.ava{width:54px;height:54px;border-radius:18px;display:grid;place-items:center;font-size:32px;background:linear-gradient(135deg,rgba(255,255,255,.35),rgba(255,255,255,.08));border:1px solid rgba(255,255,255,.35);flex:none}
+.nm{font-size:17px;font-weight:900}
+.rank{font-family:'Black Han Sans';font-weight:400;font-size:13px;padding:2px 10px;border-radius:8px;margin-left:4px;color:#fff;vertical-align:2px}
+.r0,.r1{background:linear-gradient(135deg,#64748b,#94a3b8)}.r2,.r3{background:linear-gradient(135deg,#0ea5e9,#6366f1)}.r4{background:linear-gradient(135deg,#8b5cf6,#ec4899)}.r5,.r6,.r7{background:linear-gradient(135deg,#f59e0b,#ef4444)}.r8{background:linear-gradient(135deg,#facc15,#f97316,#db2777)}
+.moneyline{font-size:14px;opacity:.95}
+.moneyline b{font-family:'Black Han Sans';font-weight:400;font-size:18px;letter-spacing:.3px}
+.pills{margin-left:auto;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.pill{font-size:12px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);padding:3px 10px;border-radius:999px;white-space:nowrap}
+.bars{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}
+.bar .lbl{font-size:12px;display:flex;justify-content:space-between;opacity:.9}
+.bar .lbl b{font-family:'Black Han Sans';font-weight:400;font-size:14px}
+.trk{height:9px;background:rgba(255,255,255,.15);border-radius:6px;overflow:hidden}
+.fill{height:100%;border-radius:6px;transition:width .6s}
+.fill.low{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.35}}
+@media(max-width:640px){.bars{grid-template-columns:repeat(3,1fr)}.pills{margin-left:0;justify-content:flex-start}}
+/* SCENE */
+.scene{position:relative;height:270px;border-radius:22px;overflow:hidden;margin-bottom:14px;box-shadow:0 12px 34px rgba(5,10,40,.4);border:1px solid rgba(255,255,255,.2);isolation:isolate}
+@media(max-width:640px){.scene{height:230px}}
+.wall{position:absolute;inset:0;background:linear-gradient(180deg,#eef1fa,#dde3f1 60%);transition:background 1s}
+.win{position:absolute;top:16px;left:22%;width:50%;height:44%;border-radius:12px;overflow:hidden;border:6px solid #cfd6e6;box-shadow:0 5px 0 #b3bdd3,inset 0 0 0 1px #fff}
+.sky{position:absolute;inset:0;transition:background 1s}
+.sun{position:absolute;width:34px;height:34px;border-radius:50%;top:16%;right:16%;background:radial-gradient(#fffbe0,#ffd36b);box-shadow:0 0 30px #ffd36b;transition:all 1.2s}
+.stars{position:absolute;inset:0;opacity:0;transition:opacity 1s;background-image:radial-gradient(1.6px 1.6px at 18% 28%,#fff,transparent),radial-gradient(1px 1px at 60% 18%,#fff,transparent),radial-gradient(1.6px 1.6px at 82% 40%,#fff,transparent),radial-gradient(1px 1px at 36% 12%,#fff,transparent),radial-gradient(1px 1px at 92% 10%,#fff,transparent),radial-gradient(1.3px 1.3px at 50% 34%,#fff,transparent)}
+.city{position:absolute;bottom:0;left:0;width:100%;height:68%;color:#8fa7d1;transition:color 1s}
+.city .lt{fill:#ffe08a;opacity:0;transition:opacity 1s}
+.mull{position:absolute;inset:0;background:linear-gradient(90deg,transparent calc(50% - 3px),#cfd6e6 calc(50% - 3px),#cfd6e6 calc(50% + 3px),transparent calc(50% + 3px))}
+.t-morning .sky{background:linear-gradient(#78bcff,#ffd9ad)}
+.t-day .sky{background:linear-gradient(#3d8bff,#a9d9ff)}
+.t-evening .sky{background:linear-gradient(#ff7e5f,#feb47b 45%,#7b4fa8)}
+.t-evening .sun{top:66%;background:radial-gradient(#ffd0a0,#ff7e3f);box-shadow:0 0 40px #ff7e3f}
+.t-evening .city{color:#57467a}.t-evening .city .lt{opacity:.5}
+.t-night .sky{background:linear-gradient(#060a22,#1b2160)}
+.t-night .sun{opacity:0;top:90%}.t-night .stars{opacity:1}.t-night .city{color:#0b0f2b}.t-night .city .lt{opacity:.95}
+.t-night .wall{background:linear-gradient(180deg,#2c3150,#22263e 60%)}
+.t-night .floor{filter:brightness(.5)}
+.floor{position:absolute;left:0;right:0;bottom:0;height:40%;background:repeating-linear-gradient(90deg,rgba(255,255,255,.12) 0 2px,transparent 2px 70px),linear-gradient(180deg,#c9cfdc,#a6afc3);transition:filter 1s}
+.poster{position:absolute;top:22px;left:3%;width:15%;min-width:66px;height:34%;border-radius:12px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:26px;box-shadow:0 6px 14px rgba(0,0,0,.25);text-align:center;padding:4px}
+.poster b{font-size:10px;line-height:1.2;margin-top:2px}
+.clockbox{position:absolute;top:18px;right:3%;background:linear-gradient(160deg,#1b2238,#0d1226);color:#7dffb0;border-radius:14px;padding:6px 12px;text-align:center;box-shadow:0 6px 14px rgba(0,0,0,.35);z-index:3;border:1px solid #2e3a5e}
+.clk{font-family:'Black Han Sans';font-size:26px;letter-spacing:2px;text-shadow:0 0 12px #39ff88;line-height:1.2}
+.cdate{font-size:11px;color:#9fb0d0}
+.desk-co{position:absolute;bottom:37%;width:12%;min-width:58px;text-align:center;z-index:2;transition:opacity .8s}
+.person{display:inline-block;font-size:30px;line-height:1;position:relative;z-index:1;transition:opacity .6s}
+.desk-co .person{margin-bottom:-6px}
+.dk{height:20px;border-radius:6px 6px 2px 2px;background:linear-gradient(#ad8259,#7d5a3c);position:relative;z-index:2;box-shadow:0 3px 0 #5e432c}
+.dk:before{content:'';position:absolute;right:8%;width:34%;height:17px;top:-15px;background:linear-gradient(#2b3350,#1b2238);border-radius:3px;box-shadow:0 0 8px rgba(120,180,255,.55)}
+.tag{display:block;font-size:10px;background:#1b2238;color:#ffd66b;border-radius:6px;padding:0 6px;width:max-content;margin:0 auto 2px}
+.ot-away .desk-co .person{opacity:0}
+.me{position:absolute;bottom:14%;transform:translateX(-50%);transition:left 1s cubic-bezier(.5,0,.3,1),opacity .6s;z-index:6;text-align:center}
+.me .person{font-size:54px;filter:drop-shadow(0 6px 6px rgba(0,0,0,.28));animation:bob 1.2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-3px)}}
+.bubble{position:absolute;bottom:100%;left:50%;transform:translateX(-50%) scale(.6);opacity:0;white-space:nowrap;background:#fff;color:#1b2238;border-radius:14px;padding:5px 12px;font-family:'Gowun Dodum';font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:.25s;margin-bottom:6px}
+.bubble.on{opacity:1;transform:translateX(-50%) scale(1)}
+.bubble:after{content:'';position:absolute;top:100%;left:50%;margin-left:-6px;border:6px solid transparent;border-top-color:#fff}
+.mydesk{position:absolute;bottom:2%;left:44%;transform:translateX(-50%);width:30%;min-width:150px;height:46px;border-radius:10px 10px 4px 4px;background:linear-gradient(#c0915f,#8a6342);z-index:7;box-shadow:0 5px 0 #64462e}
+.mydesk .mon{position:absolute;left:60%;top:-40px;width:60px;height:40px;background:#1b2238;border-radius:6px;padding:3px}
+.scr{height:100%;border-radius:3px;background:linear-gradient(135deg,#3a7bfd,#7f5bff,#3ad1ff);background-size:200% 200%;box-shadow:0 0 16px rgba(110,140,255,.85);animation:scr 3s infinite alternate}
+@keyframes scr{to{background-position:100% 100%}}
+.mydesk .cup{position:absolute;left:14%;top:-18px;font-size:18px}
+.pantry{position:absolute;left:2%;bottom:37%;font-size:26px;text-align:center;z-index:2;line-height:1}
+.pantry small,.door small{display:block;font-size:10px;color:#475069}
+.door{position:absolute;right:1%;bottom:36%;font-size:36px;z-index:2;text-align:center;line-height:1}
+.plant{position:absolute;left:15%;bottom:4%;font-size:34px;z-index:7}
+.nightshade{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 44% 78%,rgba(255,220,150,.08) 12%,rgba(5,8,30,.55) 55%);opacity:0;transition:opacity 1s;z-index:5}
+.t-night .nightshade{opacity:1}
+.beachlayer{position:absolute;inset:0;opacity:0;transition:opacity .8s;background:linear-gradient(#4fc3ff,#c4ecff 52%,#38bdf8 52%,#7dd3fc 64%,#fde4a8 64%,#f6c87a);z-index:8;pointer-events:none}
+.beachlayer span{position:absolute;font-size:44px}
+.beach .beachlayer{opacity:1}
+.beach .me{z-index:9}
+#fx{position:absolute;inset:0;pointer-events:none;z-index:10}
+.pt{position:absolute;font-weight:800;font-size:13px;padding:3px 10px;border-radius:999px;animation:up 1.7s ease-out forwards;color:#fff;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,.25)}
+.pt.up{background:var(--g-green)}.pt.down{background:var(--g-red)}
+@keyframes up{0%{transform:translateY(10px) scale(.6);opacity:0}15%{opacity:1;transform:translateY(0) scale(1)}100%{transform:translateY(-80px);opacity:0}}
+/* CARDS */
+.card{background:linear-gradient(180deg,#ffffff,#f6f7fd);border-radius:22px;padding:22px;box-shadow:0 12px 34px rgba(5,10,40,.3);margin-bottom:14px;animation:pop .3s ease}
+@keyframes pop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.card h2{font-family:'Black Han Sans';font-size:25px;color:#2f2b7e;line-height:1.3;text-shadow:0 2px 0 rgba(124,108,255,.15)}
+.card h3{font-family:'Black Han Sans';font-size:18px;color:#2a3150}
+.k{font-size:12.5px;color:var(--sub)}
+.npc{display:flex;gap:14px;align-items:center;margin-bottom:12px}
+.npc-ava{font-size:40px;width:72px;height:72px;border-radius:24px;display:grid;place-items:center;flex:none;background:linear-gradient(135deg,#e0e7ff,#fce7f3);box-shadow:inset 0 0 0 2px #fff,0 6px 14px rgba(91,140,255,.25)}
+.npc-name{font-size:13px;color:var(--sub);font-weight:700}
+.txt{font-family:'Gowun Dodum';font-size:16.5px;background:linear-gradient(135deg,#f3f6ff,#faf5ff);border:1px solid #e3e8fb;padding:14px 16px;border-radius:14px;margin:8px 0 4px;line-height:1.75}
+.choices button,.btn{display:block;width:100%;text-align:left;padding:13px 16px;margin-top:10px;border:1.5px solid var(--line);border-radius:14px;background:#fff;font-size:15px;cursor:pointer;color:var(--ink);font-family:inherit;transition:.18s;box-shadow:0 2px 0 #e7eaf3}
+.choices button:hover,.btn:hover{border-color:#8a9cff;background:#f3f5ff;transform:translateY(-1px)}
+.btn.main{background:var(--g-main);color:#fff;border:none;text-align:center;font-family:'Black Han Sans';font-size:18px;letter-spacing:.5px;box-shadow:0 8px 20px rgba(91,110,255,.4)}
+.btn.main:hover{filter:brightness(1.08);background:var(--g-main)}
+.btn.gold{background:var(--g-gold);color:#4a2a00;border:none;text-align:center;font-family:'Black Han Sans';font-size:18px}
+.btn.ghost{text-align:center;color:var(--sub)}
+.btn.sm{display:inline-block;width:auto;padding:6px 12px;font-size:13px;margin:0}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+@media(max-width:640px){.actions{grid-template-columns:repeat(2,1fr)}}
+.act{border:1.5px solid var(--line);border-radius:18px;background:#fff;padding:12px;cursor:pointer;text-align:left;font-family:inherit;color:var(--ink);transition:.18s;display:flex;gap:10px;align-items:flex-start;box-shadow:0 3px 0 #e7eaf3}
+.act:hover{border-color:#8a9cff;transform:translateY(-2px);box-shadow:0 8px 18px rgba(91,110,255,.18)}
+.act .ic{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-size:24px;flex:none;background:var(--g-main);box-shadow:0 4px 10px rgba(91,110,255,.3)}
+.act .t{font-weight:900;font-size:14.5px}
+.act .d{font-size:11.5px;color:var(--sub);line-height:1.35;margin-top:2px}
+.act.dis,.busy .act{opacity:.4;pointer-events:none}
+.act.danger .ic{background:var(--g-red)}
+.act.special .ic{background:var(--g-gold)}
+.act.green .ic{background:var(--g-green)}
+.act.warm .ic{background:var(--g-warm)}
+.aphead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ap{display:flex;gap:5px}
+.ap i{width:14px;height:14px;border-radius:50%;background:#e2e6f1;display:block}
+.ap i.on{background:var(--g-main);box-shadow:0 0 8px rgba(91,110,255,.6)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chip{font-size:13px;padding:4px 11px;border-radius:999px;font-weight:700;color:#fff}
+.chip.up{background:var(--g-green)}.chip.down{background:var(--g-red)}
+.warn{background:linear-gradient(135deg,#fff1f1,#fff7ed);border:1px solid #fbc7c7;color:#b42318;border-radius:12px;padding:8px 12px;font-size:13.5px;margin-top:8px}
+.info{background:linear-gradient(135deg,#eef3ff,#f5f0ff);border:1px solid #d6dcff;color:#2c3f8f;border-radius:12px;padding:8px 12px;font-size:13.5px;margin-top:8px}
+.good{background:linear-gradient(135deg,#ecfdf5,#eff6ff);border:1px solid #b7ebd0;color:#11643f;border-radius:12px;padding:8px 12px;font-size:13.5px;margin-top:8px}
+.tip{font-size:13px;color:var(--sub);font-family:'Gowun Dodum'}
+.progress{height:10px;border-radius:6px;background:#e9ecf5;overflow:hidden;margin-top:4px}
+.progress div{height:100%;border-radius:6px;background:var(--g-main)}
+.speed{display:flex;gap:6px;align-items:center;margin-left:auto}
+.speed button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer;font-family:inherit}
+.speed button.on{background:var(--g-main);color:#fff;border-color:transparent}
+details.log{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:18px;padding:10px 16px;color:#dfe5ff;font-size:12.5px}
+details.log summary{cursor:pointer;font-weight:700;color:#fff}
+details.log div{padding:3px 0;border-bottom:1px dashed rgba(255,255,255,.15)}
+/* title */
+.hero{text-align:center;padding:26px 8px 6px}
+.hero .big{font-size:58px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.25))}
+.hero h1{font-family:'Black Han Sans';font-size:52px;line-height:1.1;margin-top:8px;background:linear-gradient(135deg,#5b8cff,#a855f7,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--sub);margin:8px 0 0;font-family:'Gowun Dodum';font-size:16px}
+.inp{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;font-size:16px;font-family:inherit;margin-top:6px;background:#fff}
+.specs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+@media(max-width:520px){.specs{grid-template-columns:1fr}}
+.spec{border:1.5px solid var(--line);border-radius:14px;padding:10px 12px;cursor:pointer;background:#fff;font-family:inherit;text-align:left;font-size:14.5px;color:var(--ink);transition:.15s}
+.spec.on{border-color:transparent;background:linear-gradient(135deg,#e7edff,#f3e8ff);box-shadow:inset 0 0 0 2px #7c8cff;font-weight:700}
+.spec small{display:block;color:var(--sub);font-weight:400;font-size:12px}
+.comp{display:flex;gap:14px;align-items:flex-start;border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-top:10px;cursor:pointer;background:#fff;font-family:inherit;text-align:left;width:100%;color:var(--ink);transition:.18s}
+.comp:hover{border-color:#8a9cff;transform:translateY(-2px);box-shadow:0 8px 18px rgba(91,110,255,.18)}
+.comp .ic{width:56px;height:56px;border-radius:18px;display:grid;place-items:center;font-size:30px;flex:none;box-shadow:0 6px 14px rgba(0,0,0,.18)}
+.comp .cn{font-weight:900;font-size:16px}
+.comp .tg{font-size:11.5px;background:#eef1f6;border-radius:6px;padding:1px 7px;margin-left:6px;color:var(--sub);font-weight:700}
+.comp .sal{font-family:'Black Han Sans';color:#4f46e5;font-size:15px}
+.comp .ds{font-size:13px;color:var(--sub)}
+.stars5{color:#f59e0b;letter-spacing:1px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+td,th{padding:7px 10px;border-bottom:1px solid #eef0f6;text-align:left}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.slip{border-radius:16px;overflow:hidden;margin-top:12px;box-shadow:0 4px 14px rgba(20,30,80,.1);border:1px solid #e3e7f3;background:#fff}
+.slip h3{background:linear-gradient(135deg,#1f2a5a,#3b3f8f);color:#fff;font-size:15px;padding:9px 14px}
+.slip.red h3{background:linear-gradient(135deg,#b4233a,#e2563f)}
+.slip .sec td{background:#f4f6fb;font-weight:700;font-size:12.5px;color:var(--sub)}
+.slip .tot td{font-weight:900;font-size:15px;background:linear-gradient(90deg,#fff9e6,#fff3d6)}
+.minus{color:#e5484d}.plus{color:#16a34a}
+.sms{background:linear-gradient(135deg,#1b2238,#2d2f6b);color:#fff;border-radius:16px;padding:12px 16px;font-size:15px;margin-top:8px;animation:slide .6s ease;box-shadow:0 8px 20px rgba(20,20,60,.3)}
+.sms .from{font-size:12px;color:#a9b6e8}
+.sms b{font-family:'Black Han Sans';font-weight:400;font-size:22px;color:#7dffb0}
+@keyframes slide{from{transform:translateY(-24px);opacity:0}to{transform:none;opacity:1}}
+.bal{font-family:'Black Han Sans';font-size:30px;text-align:center;margin-top:14px}
+.grade{font-family:'Black Han Sans';font-size:110px;text-align:center;line-height:1;margin:6px 0;filter:drop-shadow(0 8px 14px rgba(0,0,0,.15))}
+.g-S{background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent}
+.g-A{background:linear-gradient(135deg,#3b82f6,#6366f1);-webkit-background-clip:text;background-clip:text;color:transparent}
+.g-B{background:linear-gradient(135deg,#22c55e,#14b8a6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.g-C{background:linear-gradient(135deg,#f59e0b,#f97316);-webkit-background-clip:text;background-clip:text;color:transparent}
+.g-D{background:linear-gradient(135deg,#ef4444,#b91c1c);-webkit-background-clip:text;background-clip:text;color:transparent}
+.evrow{display:grid;grid-template-columns:150px 1fr 46px;gap:10px;align-items:center;margin-top:8px;font-size:14px}
+.evrow .progress{margin:0}
+.evrow b{text-align:right;font-family:'Black Han Sans';font-weight:400;font-size:16px}
+.end-ic{font-size:86px;text-align:center;filter:drop-shadow(0 10px 18px rgba(0,0,0,.2))}
+.end-t{text-align:center;font-family:'Black Han Sans';font-size:34px;background:var(--g-main);-webkit-background-clip:text;background-clip:text;color:transparent}
+.coll{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:10px}
+.coll div{border:1px solid var(--line);border-radius:14px;padding:8px;text-align:center;font-size:12px;background:#fff}
+.coll div.lock{color:#b8bfcc;background:#f4f5f8}
+.coll .e{font-size:28px}
+.sum td:first-child{color:var(--sub)}
+.contract{border:1.5px dashed #b9c2d3;border-radius:16px;padding:14px;background:linear-gradient(180deg,#fffef6,#fffbea);margin-top:10px}
+.contract h3{text-align:center;letter-spacing:8px;margin-bottom:8px}
+.qopt{display:block;width:100%;text-align:left;padding:13px 16px;margin-top:9px;border:1.5px solid var(--line);border-radius:14px;background:#fff;font-size:15px;cursor:pointer;font-family:inherit;color:var(--ink);transition:.15s}
+.qopt:hover{border-color:#8a9cff;background:#f3f5ff}
+.qopt.ok{background:linear-gradient(135deg,#dcfce7,#ccfbf1);border-color:#22c55e;font-weight:700}
+.qopt.no{background:linear-gradient(135deg,#fee2e2,#ffedd5);border-color:#ef4444}
+.qopt.gone{opacity:.25;pointer-events:none;text-decoration:line-through}
+.timer{height:8px;border-radius:6px;background:#e9ecf5;overflow:hidden;margin:10px 0}
+.timer div{height:100%;background:linear-gradient(90deg,#ef4444,#f59e0b,#22c55e);width:100%;transition:width linear}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.tile{padding:16px 4px;border-radius:14px;border:1.5px solid var(--line);background:#fff;font-size:17px;font-family:'Gowun Dodum';cursor:pointer;transition:.12s;color:var(--ink)}
+.tile:hover{background:#f3f5ff;border-color:#8a9cff;transform:scale(1.04)}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:99;overflow:hidden}
+.confetti i{position:absolute;top:-20px;width:9px;height:14px;border-radius:2px;animation:fall 2.8s linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+.bigicon{font-size:70px;text-align:center;filter:drop-shadow(0 8px 14px rgba(0,0,0,.2))}
+.strikes{display:flex;gap:6px;justify-content:center;margin-top:8px}
+.strikes i{font-style:normal;font-size:26px;opacity:.25}
+.strikes i.on{opacity:1}
+.career{font-size:13px}
+.career li{margin:2px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+/* 시말서 */
+.paper{position:relative;background:linear-gradient(180deg,#fffef8,#fbf8ec);border:1px solid #d9d2bb;border-radius:6px;padding:30px 28px 24px;margin-top:12px;font-family:'Nanum Myeongjo',serif;color:#222;box-shadow:0 10px 24px rgba(60,50,20,.18),0 1px 0 #fff inset}
+.paper:before{content:'';position:absolute;inset:8px;border:1px solid #e9e2c9;border-radius:3px;pointer-events:none}
+.doc-title{text-align:center;font-size:34px;font-weight:800;letter-spacing:22px;margin:0 0 18px;padding-left:22px;text-decoration:underline double;text-underline-offset:8px}
+table.form{border-collapse:collapse;width:100%;font-size:14.5px;background:#fff}
+table.form th,table.form td{border:1.5px solid #6d6552;padding:8px 10px;vertical-align:middle}
+table.form th{background:#f1ecdc;width:96px;text-align:center;font-weight:800;line-height:1.35;white-space:nowrap}
+table.form textarea{width:100%;min-height:86px;border:none;outline:none;resize:vertical;font-family:'Nanum Myeongjo',serif;font-size:15px;line-height:28px;background:repeating-linear-gradient(180deg,transparent 0 27px,#e6e0cc 27px 28px);padding:0 2px;color:#1a1a1a}
+table.form textarea:focus{background-color:#fffdf2}
+.filled{min-height:56px;line-height:28px;font-size:15px;white-space:normal;word-break:break-all}
+.filled .empty{color:#b3a98c}
+.pledge{font-size:14px;line-height:1.9;margin:16px 4px 6px;text-indent:1em}
+.paper .date{text-align:center;font-size:15px;margin:14px 0 6px;letter-spacing:2px}
+.paper .sign{text-align:right;font-size:15px;margin:6px 4px}
+.paper .sign input{font-family:'Nanum Pen Script',cursive;font-size:26px;width:150px;border:none;border-bottom:1.5px solid #6d6552;background:transparent;text-align:center;outline:none;color:#1d3a8a}
+.paper .sig{font-family:'Nanum Pen Script',cursive;font-size:28px;color:#1d3a8a;padding:0 10px}
+.paper .to{font-size:17px;font-weight:800;margin:18px 4px 0;letter-spacing:2px}
+.stamp{position:absolute;right:26px;top:22px;width:104px;height:104px;border:5px double #d62828;color:#d62828;border-radius:50%;display:grid;place-items:center;font-family:'Black Han Sans';font-size:30px;transform:rotate(-16deg);opacity:.88;animation:stampIn .45s cubic-bezier(.2,1.6,.4,1);z-index:3;background:rgba(255,255,255,.15)}
+.stamp.blue{border-color:#1d4ed8;color:#1d4ed8}
+@keyframes stampIn{0%{transform:rotate(-16deg) scale(2.4);opacity:0}100%{transform:rotate(-16deg) scale(1);opacity:.88}}
+.redpen{margin-top:12px;background:#fff8f6;border:1.5px dashed #f2a3a3;border-radius:12px;padding:10px 14px}
+.redpen div{font-family:'Nanum Pen Script',cursive;font-size:23px;color:#d62828;line-height:1.3}
+.cnt{font-size:11px;color:#9a917a;text-align:right}
+@media(max-width:560px){.paper{padding:22px 12px}.doc-title{font-size:26px;letter-spacing:12px}table.form th{width:64px;font-size:12.5px;padding:6px}}
+.row .btn{flex:1}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* =========================================================
+   오늘도 출근 v2 — 회사생활 시뮬레이터
+   ========================================================= */
+const app=document.getElementById('app');
+const $id=id=>document.getElementById(id);
+const R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const P=p=>Math.random()<p;
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const won=n=>(n<0?'-':'')+Math.abs(Math.round(n)).toLocaleString('ko-KR')+'원';
+const man=n=>{n=Math.round(n);if(Math.abs(n)>=10000){const e=Math.floor(n/10000),r=n%10000;return e+'억'+(r?' '+r.toLocaleString('ko-KR')+'만':'')+'원';}return n.toLocaleString('ko-KR')+'만원';};
+const eok=n=>{const v=n/100000000;return (Math.abs(v)>=1?v.toFixed(1)+'억':Math.round(n/10000).toLocaleString('ko-KR')+'만')+'원';};
+const nl=s=>String(s).replace(/\n/g,'<br>');
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const CAN_ANIM=typeof requestAnimationFrame!=='undefined'&&typeof document.querySelectorAll==='function';
+let CHO=[],TK=0;
+function b(fn){CHO.push(fn);return `CHO[${CHO.length-1}]()`;}
+function screen(builder,after){CHO=[];TK++;app.innerHTML=builder();try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){}if(after)after();}
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){return null;}}
+let SPEED=(()=>{const v=store('osSpeed');return v===null||v===undefined?1:+v;})();
+
+/* ===================== 데이터 ===================== */
+const RANKS=['사원','대리','과장','차장','부장','상무','전무','부사장','사장'];
+const PROMO=[{yrs:2,pts:8,exam:'quiz'},{yrs:3,pts:11,exam:'quiz'},{yrs:3,pts:11,exam:'pt'},{yrs:4,pts:14,exam:'pt'}];
+const EXEC_SAL={5:15000,6:22000,7:30000,8:50000};
+const COMPANIES=[
+ {id:'big',name:'거대전자',icon:'🏢',type:'대기업',sal:5400,diff:75,star:5,desc:'연봉·복지 최상급. 경쟁률 미쳤고 사내정치 살벌함',politics:1.5,otPay:true,bonus:1.5,th:3.5,grad:'linear-gradient(135deg,#3b82f6,#6366f1)'},
+ {id:'pub',name:'한국안정공사',icon:'🏛️',type:'공기업',sal:4100,diff:70,star:4,desc:'정년 보장, 칼퇴 가능. 승진은 시험으로, 순환보직 있음',politics:1,otPay:true,bonus:.8,safe:true,th:3,grad:'linear-gradient(135deg,#14b8a6,#0ea5e9)'},
+ {id:'mid',name:'튼튼물산',icon:'🏬',type:'중견기업',sal:3900,diff:50,star:3,desc:'무난함 그 자체. 오너 일가가 좀 설침',politics:1,otPay:true,bonus:1,th:2,grad:'linear-gradient(135deg,#22c55e,#65a30d)'},
+ {id:'start',name:'유니콘될랩',icon:'🚀',type:'스타트업',sal:3700,diff:40,star:2,desc:'수평적 문화! 스톡옵션! …근데 언제 망할지 모름',politics:.7,otPay:false,bonus:.5,startup:true,th:1.5,grad:'linear-gradient(135deg,#a855f7,#ec4899)'},
+ {id:'black',name:'(주)행복가득상사',icon:'🏚️',type:'중소기업',sal:3200,diff:15,star:1,desc:'"가족 같은 회사" "열정 있는 인재 환영" "연봉 내규에 따름"',politics:1.2,otPay:false,bonus:.2,black:true,th:0,grad:'linear-gradient(135deg,#78716c,#44403c)'},
+];
+const SPECS=[
+ {id:'gpa',t:'🎓 학점 4.2',d:'성실함의 증거',v:15},
+ {id:'toeic',t:'🔤 토익 950',d:'근데 회화는 못 함',v:15},
+ {id:'intern',t:'🏢 인턴 경험',d:'실력 +5',v:18,skill:5},
+ {id:'cert',t:'📜 자격증 3개',d:'실력 +5',v:12,skill:5},
+ {id:'club',t:'🤝 동아리 회장',d:'동료 관계 +10',v:12,peers:10},
+ {id:'conn',t:'👔 아빠 친구가 임원',d:'인맥… 튼튼물산 서류 프리패스',v:22,conn:true},
+];
+const TIPS=['월급은 통장을 스쳐 지나갈 뿐이다.','부장님의 "아무거나"는 아무거나가 아니다.','금요일 오후 4시에 오는 메일은 열지 마라.','퇴사는 지르는 게 아니라 준비하는 것이다.','회의가 길어질수록 결론은 짧아진다.','"편하게 얘기해"는 편하게 얘기하라는 뜻이 아니다.','연차는 쓰라고 있는 것이다. 눈치는 덤이다.','보고서는 결론부터. 부장님은 첫 장만 본다.','오늘 할 일을 내일로 미루면, 내일은 야근이다.','승진은 실력 반, 운 반, 줄 반이다. (합이 이상하지만 원래 그렇다)'];
+const QUIZ=[
+ ['결재 서류의 "전결"은 무슨 뜻일까?',['위임받은 사람이 최종 결재권자 대신 결재하는 것','모든 결재자가 동시에 결재하는 것','결재를 생략하는 것','전 직원이 돌아가며 결재하는 것'],'전결 = 권한을 위임받은 사람이 대신 최종 결재하는 것.'],
+ ['KPI는 무엇의 약자일까?',['Key Performance Indicator','Key Personal Index','Korea Performance Institute','Key Project Item'],'핵심성과지표. 평가 시즌마다 듣게 될 단어.'],
+ ['ROI의 의미는?',['투자 대비 수익률','매출 총이익률','자기자본 비율','재고 회전율'],'Return On Investment.'],
+ ['엑셀에서 조건에 맞는 셀들의 합계를 구하는 함수는?',['SUMIF','VLOOKUP','COUNTA','CONCAT'],'SUMIF(범위, 조건, 합계범위).'],
+ ['엑셀에서 셀을 절대참조로 고정할 때 쓰는 기호는?',['$','#','@','&'],'예: $A$1 — 복사해도 안 움직인다.'],
+ ['VLOOKUP의 마지막 인수에 FALSE(0)를 넣으면?',['정확히 일치하는 값만 찾는다','근사값을 찾는다','오류를 무시한다','가로 방향으로 찾는다'],'FALSE = 정확히 일치.'],
+ ['메일의 BCC(숨은 참조)에 넣은 사람은?',['다른 수신자에게 주소가 보이지 않는다','답장을 할 수 없다','첨부파일을 열 수 없다','메일이 늦게 도착한다'],'BCC 수신자는 다른 사람에게 노출되지 않는다.'],
+ ['"ASAP"의 뜻은?',['가능한 한 빨리','회의 끝나고','검토 바람','참고용'],'As Soon As Possible. 부장님이 제일 좋아하는 단어.'],
+ ['"FYI"의 뜻은?',['참고로 알려드립니다','즉시 회신 바랍니다','결재 요청드립니다','회의가 취소되었습니다'],'For Your Information.'],
+ ['주 52시간제에서 법정근로 40시간 외 연장근로는 주 최대 몇 시간?',['12시간','8시간','16시간','20시간'],'40 + 12 = 52.'],
+ ['1년간 80% 이상 출근한 근로자의 연차유급휴가는 최소 며칠?',['15일','10일','12일','20일'],'근로기준법상 15일.'],
+ ['퇴직금을 받으려면 계속근로기간이 최소 얼마 이상이어야 할까?',['1년','6개월','2년','3년'],'1년 이상, 주 15시간 이상 근무해야 한다.'],
+ ['다음 중 4대 보험이 아닌 것은?',['연금저축','국민연금','고용보험','산재보험'],'4대 보험 = 국민연금·건강보험·고용보험·산재보험.'],
+ ['손익계산서에서 "매출액 − 매출원가"는?',['매출총이익','영업이익','당기순이익','EBITDA'],'여기서 판매비와관리비를 빼면 영업이익.'],
+ ['영업이익을 구하는 식은?',['매출총이익 − 판매비와관리비','매출액 − 법인세','순이익 + 이자비용','매출원가 − 판관비'],'영업이익 = 매출총이익 − 판관비.'],
+ ['손익분기점(BEP)이란?',['총수익과 총비용이 같아지는 지점','매출이 가장 큰 지점','비용이 가장 적은 지점','주가가 가장 높은 지점'],'이익도 손실도 0인 지점.'],
+ ['SWOT 분석에서 W는?',['Weakness (약점)','Wealth (자산)','Workflow (업무흐름)','Will (의지)'],'Strength · Weakness · Opportunity · Threat.'],
+ ['MECE 원칙의 의미는?',['중복 없이, 누락 없이','빠르고 정확하게','작게 시작해 크게','고객 중심으로'],'Mutually Exclusive, Collectively Exhaustive.'],
+ ['PDCA 사이클의 올바른 순서는?',['Plan → Do → Check → Act','Do → Plan → Act → Check','Plan → Check → Do → Act','Check → Plan → Do → Act'],'계획 → 실행 → 점검 → 개선.'],
+ ['"R&R"은 무슨 뜻일까?',['역할과 책임','연구와 개발','휴식과 회복','보고와 검토'],'Role & Responsibility.'],
+ ['"OJT"란?',['현업에서 일하면서 받는 직무 교육','온라인 화상 교육','해외 연수','외부 위탁 교육'],'On-the-Job Training.'],
+ ['B2B는 어떤 거래를 뜻할까?',['기업과 기업 간 거래','기업과 소비자 간 거래','소비자끼리의 거래','정부와 기업 간 거래'],'Business to Business.'],
+ ['부채비율을 구하는 식은?',['부채 ÷ 자기자본 × 100','자산 ÷ 부채 × 100','부채 ÷ 매출 × 100','자기자본 ÷ 자산 × 100'],'낮을수록 재무구조가 안정적이다.'],
+ ['EBITDA의 "D"는 무엇일까?',['Depreciation (감가상각)','Debt (부채)','Dividend (배당)','Discount (할인)'],'이자·세금·감가상각·무형자산상각 전 이익.'],
+];
+const TYPO=[['보고서','보고셔'],['결재','결제'],['회의록','회의룩'],['매출','매츨'],['품의서','품위서'],['거래처','거래쳐'],['부장님','부장닝'],['견적서','견젹서'],['출장','출쟝'],['연차','연착'],['정산','청산'],['기획안','기획인']];
+const QS=[
+ {q:'간단하게 1분 자기소개 해보세요.',who:'🧓',ch:[{t:'준비한 대로 또박또박 말한다',s:1},{t:'"저는 회사의 비타민 같은 사람입니다!"',s:()=>P(.5)?2:-1},{t:'긴장해서 말을 더듬는다',s:0,m:-3}]},
+ {q:'야근 가능하세요?',who:'🧔',ch:[{t:'"네! 회사가 원하면 언제든지요!"',s:2},{t:'"효율적으로 일해서 시간 안에 끝내겠습니다."',s:1},{t:'"…혹시 야근 수당은 나오나요?"',s:-1}]},
+ {q:'우리 회사 말고 어디 지원했어요?',who:'👩‍💼',ch:[{t:'"이 회사만 바라보고 준비했습니다."',s:1},{t:'"솔직히 몇 군데 더 지원했습니다."',s:1},{t:'"거대전자요. 거기 떨어지면 여기 오려고요."',s:-2}]},
+ {q:'5년 후 본인의 모습은 어떨 것 같나요?',who:'🧓',ch:[{t:'"이 분야의 전문가가 되어 있을 겁니다."',s:2},{t:'"면접관님 자리에 앉아 있겠습니다!"',s:()=>P(.5)?2:-1},{t:'"글쎄요… 살아는 있겠죠?"',s:-1}]},
+ {q:'스펙이 좀 애매한데, 우리가 왜 뽑아야 하죠? (압박면접)',who:'🧔',ch:[{t:'경험 위주로 차분하게 반박한다',s:2},{t:'"…죄송합니다"',s:-1,m:-5},{t:'"그럼 서류는 왜 붙이셨어요?"',s:()=>P(.3)?2:-2}]},
+ {q:'혹시… 결혼 계획 있어요? (부적절한 질문 억까)',who:'🧓',ch:[{t:'웃으며 "지금은 일에 집중하고 싶습니다"',s:1},{t:'"직무와 관계없는 질문 같습니다."',s:-1,m:5},{t:'"평생 회사와 결혼하겠습니다!"',s:2,m:-5}]},
+ {q:'우리 회사 작년 매출이 얼마인지 알아요?',who:'👩‍💼',ch:[{t:'숫자까지 정확히 말한다',s:()=>S.spec>=60||P(.5)?2:0},{t:'"대략… 많이 버신 걸로 압니다"',s:-1},{t:'"매출보다 비전을 보고 지원했습니다"',s:1}]},
+ {q:'마지막으로 하고 싶은 말 있나요?',who:'🧔',ch:[{t:'"뽑아주시면 후회 없게 하겠습니다!"',s:1},{t:'"면접관님들 점심 뭐 드셨어요?"',s:()=>P(.3)?2:-1},{t:'"없습니다."',s:0}]},
+];
+const CAREER_QS=[
+ {q:'전 직장은 왜 그만두셨어요?',who:'🧔',ch:[{t:'"더 큰 역할과 성장을 위해서입니다."',s:2},{t:'"전 상사가 진짜 최악이었거든요…"',s:-2},{t:'"…사정이 좀 있었습니다."',s:0}]},
+ {q:'희망 연봉은 어느 정도인가요?',who:'👩‍💼',ch:[{t:'"내규에 따르겠습니다."',s:1},{t:'시장 데이터를 근거로 차분히 제시한다',s:()=>S.skill>=50?2:1},{t:'"지금보다 50%는 올려주셔야…"',s:-1}]},
+ {q:'우리 회사에 오면 첫 3개월 동안 뭘 하실 건가요?',who:'🧓',ch:[{t:'구체적인 온보딩·성과 계획을 말한다',s:2},{t:'"일단 적응부터 하겠습니다"',s:1},{t:'"전 회사 방식대로 싹 바꾸겠습니다"',s:-1}]},
+ {q:'경력에 비해 나이가 좀 있으시네요? (억까)',who:'🧔',ch:[{t:'"그만큼 경험이 많습니다."',s:2},{t:'"…그게 문제가 되나요?"',s:-1},{t:'웃으며 성과 수치로 답한다',s:()=>S.skill>=60?2:1}]},
+];
+const PT_QS=[
+ {q:'본인이 이끈 업무 중 가장 큰 성과를 말해보세요.',ch:[{t:'숫자로 성과를 증명한다',s:()=>S.skill>=55?2:1},{t:'팀워크를 강조한다',s:1},{t:'"기억이 잘…"',s:-1}]},
+ {q:'팀원 간 갈등이 생기면 어떻게 하겠습니까?',ch:[{t:'1:1 면담 후 중재안을 만든다',s:2},{t:'성과 낮은 쪽을 정리한다',s:0},{t:'"알아서들 해결하라고 하겠습니다"',s:-1}]},
+ {q:'회사의 3년 뒤 비전을 제시해 보세요.',ch:[{t:'데이터 기반 사업 비전을 발표한다',s:()=>S.skill>=60?2:1},{t:'사장님 신년사를 인용한다',s:1},{t:'"솔직히 잘 모르겠습니다"',s:-2}]},
+ {q:'부하 직원이 매일 칼퇴만 한다면?',ch:[{t:'근무시간이 아니라 성과로 판단한다',s:2},{t:'"조금만 더 하고 가자" 붙잡는다',s:0},{t:'나도 같이 칼퇴한다',s:-1}]},
+ {q:'윗선이 비윤리적인 지시를 한다면?',ch:[{t:'원칙대로 거절하고 공식 채널에 보고',s:2},{t:'일단 따르고 본다',s:-1},{t:'상황을 보며 판단한다',s:1}]},
+];
+
+/* ===================== 상태 ===================== */
+let S;
+function newState(){return{v:2,name:'김신입',picked:[],spec:20,conn:false,age:26,cal:2027,month:3,money:4000000,hp:85,mental:80,boss:50,peers:50,skill:30,perf:0,kpiTarget:100,
+ cid:null,employed:false,everHired:false,salary:0,firstSal:0,rank:0,yearsInRank:0,promoPts:0,promoCand:false,execCand:false,hints:0,lastGrade:'-',rate:100,
+ ap:3,careerMonths:0,companyMonths:0,leave:15,jobHunt:0,corruption:0,line:null,flags:{},cool:{},once:{},otThisMonth:0,unpaid:0,probation:0,noPay:0,
+ strikes:{hp:0,mental:0,boss:0},searchMonths:0,unempMonths:0,ui:0,mom:false,stigma:false,offers:{},notices:[],evLeft:0,
+ life:{married:false,dual:false,kids:0,house:false,houseVal:0,loan:0,loanPay:0,car:0},
+ career:[],stats:{scold:0,drink:0,ot:0,earned:0,bonus:0,apps:0,promos:0,exams:0},log:[]};}
+const C=()=>S&&S.cid?COMPANIES.find(c=>c.id===S.cid):null;
+const isExec=()=>S.rank>=5;
+const netWorth=()=>S.money+(S.life.house?S.life.houseVal-S.life.loan:0);
+const STAT=['hp','mental','boss','peers','skill'];
+function lab(k){return({hp:'체력',mental:'멘탈',boss:isExec()?'회장 신임':'상사 호감',peers:isExec()?'조직 장악력':'동료 관계',skill:'실력',money:'돈',perf:'성과',jobHunt:'이직 준비',salary:'연봉',rate:'실적',hints:'시험 힌트'})[k]||k;}
+function save(){if(S&&S.employed!==undefined)store('officeSim2',JSON.stringify(S));}
+function loadSave(){try{const s=JSON.parse(store('officeSim2')||'null');return s&&s.v===2?s:null;}catch(e){return null;}}
+function apply(fx){const out=[];if(!fx)return out;for(const k in fx){let v=fx[k];if(!v)continue;
+ if(STAT.includes(k)){const bf=S[k];S[k]=clamp(S[k]+v,0,100);v=S[k]-bf;if(v)out.push([k,v]);}
+ else if(k==='rate'){S.rate=clamp(S.rate+v,0,250);out.push([k,v]);}
+ else{S[k]=(S[k]||0)+v;out.push([k,v]);}}return out;}
+function chipTxt(k,v){return `${lab(k)} ${v>0?'+':''}${k==='money'?won(v):k==='salary'||k==='rate'?v+'%':v}`;}
+function chipsHtml(ch){return ch&&ch.length?`<div class="chips">${ch.map(([k,v])=>`<span class="chip ${v>0?'up':'down'}">${chipTxt(k,v)}</span>`).join('')}</div>`:'';}
+function log(s){S.log.unshift(`[${S.cal}.${String(S.month).padStart(2,'0')}] ${s}`);S.log=S.log.slice(0,12);}
+
+/* ===================== 공통 UI ===================== */
+const BARC={hp:'linear-gradient(90deg,#ff5f6d,#ffa07a)',mental:'linear-gradient(90deg,#a18cd1,#fbc2eb)',boss:'linear-gradient(90deg,#f6d365,#fda085)',peers:'linear-gradient(90deg,#84fab0,#8fd3f4)',skill:'linear-gradient(90deg,#5b8cff,#a78bfa)'};
+const BARI={hp:'❤️',mental:'🧠',boss:'👔',peers:'🤝',skill:'📈'};
+function barH(k){const v=S[k];return `<div class="bar"><div class="lbl"><span>${BARI[k]} ${lab(k)}</span><b>${v}</b></div><div class="trk"><div class="fill ${v<25?'low':''}" style="width:${v}%;background:${BARC[k]}"></div></div></div>`;}
+function hud(){const c=C();const yrs=Math.floor(S.careerMonths/12)+1;
+ const pills=[];
+ if(S.employed){pills.push(`🏖️ 연차 ${S.leave}`);
+  if(isExec())pills.push(`📈 실적 달성률 ${S.rate}%`);
+  else if(S.rank<4){const pr=PROMO[S.rank];pills.push(`⭐ 승진P ${S.promoPts}/${pr.pts} · 근속 ${S.yearsInRank}/${pr.yrs}년`);}
+  else pills.push(`👑 부장 ${S.yearsInRank}년차`);
+  if(S.promoCand)pills.push('📢 승진심사 대상');if(S.execCand)pills.push('🌟 임원 후보');}
+ else pills.push(`🎒 구직 ${S.everHired?S.unempMonths:S.searchMonths}개월째`);
+ const st=S.strikes;if(st.hp||st.mental||st.boss)pills.push(`⚠️ ${st.hp?'🚑'.repeat(st.hp):''}${st.mental?'🫠'.repeat(st.mental):''}${st.boss?'📛'.repeat(st.boss):''}`);
+ return `<header class="hud" id="hud"><div class="hud-top">${c&&S.employed?`<span class="cbadge" style="background:${c.grad}">${c.icon} ${c.name}</span>`:`<span class="cbadge" style="background:linear-gradient(135deg,#64748b,#334155)">🎒 ${S.everHired?'구직 중 (경력직)':'취업준비생'}</span>`}
+ <span class="age">${S.age}세${S.everHired?` · 직장생활 ${yrs}년차`:''}</span><span class="date">${S.cal}년 ${S.month}월</span></div>
+ <div class="hud-mid"><div class="ava">${isExec()?'🤵':S.employed?'🧑‍💻':'😵‍💫'}</div><div><div class="nm">${S.name}${S.everHired?`<span class="rank r${S.rank}">${RANKS[S.rank]}</span>`:''}</div>
+ <div class="moneyline">💰 <b>${won(S.money)}</b>${S.salary?` · 연봉 ${man(S.salary)}`:''}${S.life.house?` · 🏠 순자산 ${eok(netWorth())}`:''}</div></div>
+ <div class="pills">${pills.map(p=>`<span class="pill">${p}</span>`).join('')}</div></div>
+ <div class="bars">${STAT.map(barH).join('')}</div></header>`;}
+function logBox(){return S.log.length?`<details class="log"><summary>📋 최근 기록</summary>${S.log.map(l=>`<div>${l}</div>`).join('')}</details>`:'';}
+function sceneCard(who,name,title,text,choicesHtml,extra=''){return `<section class="card"><div class="npc"><div class="npc-ava">${who}</div><div><div class="npc-name">${name}</div><h2>${title}</h2></div></div>
+ <div class="txt">${nl(text)}</div>${extra}<div class="choices">${choicesHtml}</div></section>`;}
+function showResult(title,text,chips,next,label='다음 ▶',icon=''){screen(()=>hud()+`<section class="card">${icon?`<div class="bigicon">${icon}</div>`:''}<h2>${title}</h2><div class="txt">${nl(text)}</div>${chipsHtml(chips)}
+ <button class="btn main" onclick="${b(next)}">${label}</button></section>`+logBox());}
+function confetti(){if(!CAN_ANIM)return;const d=document.createElement('div');d.className='confetti';const cols=['#5b8cff','#a855f7','#ec4899','#f59e0b','#22c55e','#06b6d4'];
+ for(let i=0;i<70;i++){const e=document.createElement('i');e.style.left=Math.random()*100+'%';e.style.background=pick(cols);e.style.animationDelay=Math.random()*1+'s';e.style.animationDuration=(2+Math.random()*1.5)+'s';d.appendChild(e);}document.body.appendChild(d);setTimeout(()=>d.remove(),4200);}
+
+/* ===================== 사무실 씬 ===================== */
+const CITY=`<svg class="city" viewBox="0 0 300 100" preserveAspectRatio="none"><path fill="currentColor" d="M0 100V62h18V44h16v14h14V26h20v26h14V36h16v24h14V20h20v26h14V30h20v26h14V40h20V14h16v36h20V34h20v24h18V44h20v56z"/>
+ <g class="lt"><rect x="52" y="32" width="3" height="3"/><rect x="60" y="40" width="3" height="3"/><rect x="118" y="26" width="3" height="3"/><rect x="126" y="34" width="3" height="3"/><rect x="118" y="42" width="3" height="3"/><rect x="210" y="20" width="3" height="3"/><rect x="216" y="30" width="3" height="3"/><rect x="210" y="40" width="3" height="3"/><rect x="152" y="38" width="3" height="3"/><rect x="88" y="44" width="3" height="3"/><rect x="248" y="44" width="3" height="3"/><rect x="24" y="52" width="3" height="3"/></g></svg>`;
+function tclass(m){return m<11*60?'morning':m<17*60?'day':m<19*60+30?'evening':'night';}
+function fmt(m){m=Math.round(m);const h=Math.floor(m/60)%24,mm=m%60;return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0');}
+function sceneHtml(st={}){const c=C()||COMPANIES[2];const ex=isExec();
+ return `<div class="scene t-${st.time||'morning'} ${st.beach?'beach':''} ${st.away?'ot-away':''}" id="scene">
+ <div class="wall"></div><div class="win"><div class="sky"></div><div class="stars"></div><div class="sun"></div>${CITY}<div class="mull"></div></div>
+ <div class="poster" style="background:${c.grad}">${c.icon}<b>${c.name}</b></div>
+ <div class="clockbox"><div class="clk" id="clk">${st.clock||'09:00'}</div><div class="cdate">${S.cal}.${String(S.month).padStart(2,'0')}</div></div>
+ <div class="floor"></div>
+ <div class="pantry">☕<small>탕비실</small></div><div class="door">🚪<small>퇴근</small></div>
+ <div class="desk-co" style="left:16%"><span class="person">${ex?'🧑‍💼':'🧑‍💼'}</span><div class="dk"></div></div>
+ <div class="desk-co" style="left:31%"><span class="person">👩‍💻</span><div class="dk"></div></div>
+ <div class="desk-co" style="left:56%"><span class="person">🧑‍🔧</span><div class="dk"></div></div>
+ <div class="desk-co" style="left:74%"><span class="tag">${ex?'회장실':'부장'}</span><span class="person" id="bossE">${ex?'👴':'👨‍💼'}</span><div class="dk"></div></div>
+ <div class="nightshade"></div>
+ <div class="me" id="me" style="left:${st.left!=null?st.left:44}%;${st.gone?'opacity:0':''}"><div class="bubble ${st.bubble?'on':''}" id="bub">${st.bubble||''}</div><span class="person" id="meE">${st.me||(ex?'🤵':'🧑‍💻')}</span></div>
+ <div class="mydesk"><span class="cup">☕</span><div class="mon"><div class="scr"></div></div></div>
+ <div class="plant">🪴</div>
+ <div class="beachlayer"><span style="left:8%;top:44%">🌴</span><span style="left:70%;top:58%">⛱️</span><span style="left:84%;top:12%">☀️</span><span style="left:40%;top:46%;font-size:30px">⛵</span></div>
+ <div id="fx"></div></div>`;}
+function animate(a,ch,done){const endM=a.end*60+(a.endMin||0);const st={time:a.beach?'day':tclass(endM),clock:fmt(endM),me:a.meEnd||a.me,left:a.pos!=null?a.pos:44,bubble:a.lines?a.lines[a.lines.length-1]:'',beach:a.beach,away:a.away,gone:a.gone};
+ if(SPEED===0||!CAN_ANIM)return done(st);
+ const tk=TK,dur=SPEED===2?1300:2800,startM=9*60;
+ const me=$id('me'),meE=$id('meE'),bub=$id('bub'),scene=$id('scene'),clk=$id('clk');if(!scene)return done(st);
+ const panel=$id('panel');if(panel)panel.classList.add('busy');
+ meE.textContent=a.me||'🧑‍💻';
+ if(a.pos!=null)setTimeout(()=>{if(tk===TK)me.style.left=a.pos+'%';},dur*.12);
+ if(a.gone)setTimeout(()=>{if(tk===TK)me.style.opacity='0';},dur*.6);
+ if(a.bossVisit){const bo=$id('bossE');if(bo)setTimeout(()=>{if(tk===TK){bo.parentElement.style.transition='left 1s';bo.parentElement.style.left='52%';}},dur*.45);}
+ const lines=a.lines||[];let li=-1;const t0=performance.now();
+ function step(t){if(tk!==TK)return;const k=Math.min(1,(t-t0)/dur);const m=startM+(endM-startM)*k;clk.textContent=fmt(m);
+  scene.className='scene t-'+(a.beach?'day':tclass(m))+(a.beach&&k>.1?' beach':'')+(a.away&&m>19*60?' ot-away':'');
+  const idx=Math.min(lines.length-1,Math.floor(k*lines.length));if(idx!==li&&lines.length){li=idx;bub.classList.remove('on');setTimeout(()=>{if(tk===TK){bub.textContent=lines[idx];bub.classList.add('on');}},80);}
+  if(k<1)requestAnimationFrame(step);else{spawnFx(ch);setTimeout(()=>{if(tk===TK)done(st,true);},SPEED===2?600:1100);}}
+ requestAnimationFrame(step);}
+function spawnFx(ch){const fx=$id('fx');if(!fx)return;ch.forEach(([k,v],i)=>{const e=document.createElement('span');e.className='pt '+(v>0?'up':'down');e.textContent=chipTxt(k,v);e.style.left=(30+((i*17)%45))+'%';e.style.top=(48-(i%3)*8)+'%';e.style.animationDelay=i*.12+'s';fx.appendChild(e);});}
+
+/* ===================== 타이틀 ===================== */
+function titleScreen(){const sv=loadSave();S=S||newState();
+ screen(()=>`<section class="card"><div class="hero"><div class="big">🏢💼🚇</div><h1>오늘도 출근</h1><p>26살 신입사원부터 60살 정년, 혹은 사장실까지.<br>야근·회식·억까·정치질·인사평가·승진시험을 버티는 회사생활 시뮬레이터</p></div>
+ ${sv?`<button class="btn gold" style="margin-top:18px" onclick="${b(()=>{S=sv;resumeGame();})}">▶ 이어하기 — ${sv.name} ${sv.everHired?RANKS[sv.rank]:'취준생'} · ${sv.age}세 · ${sv.cal}년 ${sv.month}월</button>`:''}
+ <button class="btn main" style="margin-top:10px" onclick="${b(()=>{S=newState();drawStart();})}">🆕 새 인생 시작하기</button>
+ <div class="info" style="margin-top:14px">💡 <b>한 달에 행동 3번</b>을 고르면 사무실에서 시간이 흘러가. 월말엔 돌발 이벤트와 월급날, 12월엔 인사평가와 연봉협상이 있고, 1월엔 승진시험이 열려. 매달 자동 저장돼.</div>
+ ${collectionHtml()}</section>`);}
+function resumeGame(){if(!S.employed)return jobBoard();officeScreen();}
+function drawStart(){const el=$id('nm');if(el&&el.value!==undefined)S.name=el.value||'김신입';
+ screen(()=>`<section class="card"><h2>🧑‍🎓 캐릭터 만들기</h2>
+ <div style="margin-top:12px"><b>이름</b><input id="nm" class="inp" maxlength="6" value="${S.name}" placeholder="김신입"></div>
+ <div style="margin-top:16px"><b>내 스펙 고르기</b> <span class="k">(3개까지 · ${S.picked.length}/3)</span><div class="specs">
+ ${SPECS.map(sp=>`<button class="spec ${S.picked.includes(sp.id)?'on':''}" onclick="${b(()=>{const i=S.picked.indexOf(sp.id);if(i>=0)S.picked.splice(i,1);else if(S.picked.length<3)S.picked.push(sp.id);drawStart();})}">${sp.t}<small>${sp.d}</small></button>`).join('')}
+ </div></div>
+ <button class="btn main" style="margin-top:18px" onclick="${b(beginSearch)}">취업 전선에 뛰어들기 ▶</button>
+ <button class="btn ghost" onclick="${b(titleScreen)}">← 처음으로</button></section>`);}
+function beginSearch(){const el=$id('nm');S.name=((el&&el.value)||S.name||'김신입').trim()||'김신입';
+ S.spec=20;S.picked.forEach(id=>{const sp=SPECS.find(x=>x.id===id);S.spec+=sp.v;if(sp.skill)S.skill+=sp.skill;if(sp.peers)S.peers+=sp.peers;if(sp.conn)S.conn=true;});
+ log(`취준 시작 (스펙 ${S.spec})`);jobBoard();}
+
+/* ===================== 구직 (신입 / 경력) ===================== */
+function careerOffer(c){if(!S.everHired)return c.sal;const base=c.sal*(1+Math.min(S.rank,4)*.22);const cur=S.salary*(c.sal/4300)*(.95+Math.random()*.2);return Math.round(Math.max(base,cur)/10)*10;}
+function jobBoard(){if(!S.offers||!S.offers._m||S.offers._m!==S.cal*12+S.month){S.offers={_m:S.cal*12+S.month};COMPANIES.forEach(c=>S.offers[c.id]=careerOffer(c));}
+ const career=S.everHired;
+ screen(()=>hud()+`<section class="card"><h2>📋 ${career?'경력직 채용 공고':'신입 공채 공고'}</h2>
+ <p class="k">${career?`지금 직급(${RANKS[S.rank]})을 유지하고 지원해. 떨어지면 한 달이 지나가.${S.ui>0?` 실업급여 ${S.ui}개월 남음.`:''}${S.stigma?' <b class="minus">⚠️ 징계 이력 때문에 서류 통과가 어려워.</b>':''}`:'서류 → 면접 순으로 진행돼. 떨어지면 한 달이 지나고 생활비 80만 원이 나가.'}</p>
+ ${COMPANIES.map(c=>`<button class="comp" onclick="${b(()=>applyTo(c))}"><div class="ic" style="background:${c.grad}">${c.icon}</div><div><div class="cn">${c.name}<span class="tg">${c.type}</span></div>
+ <div class="sal">${career?'제시 연봉':'초봉'} ${man(S.offers[c.id])} · 난이도 <span class="stars5">${'★'.repeat(c.star)}${'☆'.repeat(5-c.star)}</span></div><div class="ds">${c.desc}</div></div></button>`).join('')}
+ ${career?`<div class="row" style="margin-top:6px"><button class="btn" onclick="${b(()=>restMonth())}">🛋️ 한 달 쉬면서 재충전</button><button class="btn" onclick="${b(()=>ending(S.age>=50?'retire':'quit_life'))}">🏁 회사원 졸업 (게임 종료)</button></div>`:''}
+ </section>`+logBox());}
+function applyTo(c){S.stats.apps++;let p;
+ if(!S.everHired){p=clamp(.65+(S.spec-c.diff)/100,.05,.97);if(S.conn&&c.id==='mid')p=1;}
+ else p=clamp(.5+S.skill/220+Math.min(S.rank,4)*.04-c.diff/250-(S.stigma?.3:0)-(S.age>=50?.15:0)-(S.rank>=4&&c.startup?.1:0),.05,.95);
+ if(!P(p))return failSearch(c,'📭 서류 탈락',pick(['"귀하의 우수한 역량에도 불구하고 한정된 인원으로 인해…" 자동 발송 메일이 왔다.','(연락 없음. 그냥 없음. 이것이 무소식 탈락이다.)','"아쉽게도 이번에는 함께하지 못하게 되었습니다." 이번에도, 저번에도.']));
+ const qs=S.everHired?shuffle(CAREER_QS).slice(0,2).concat(shuffle(QS).slice(0,1)):shuffle(QS).slice(0,3);
+ interview(c,0,0,qs);}
+function interview(c,i,score,qs){if(i>=qs.length)return interviewEnd(c,score);const q=qs[i];
+ screen(()=>hud()+sceneCard(q.who,`${c.icon} ${c.name} 면접관 · 질문 ${i+1}/${qs.length}`,'🎤 면접 중',q.q,
+ q.ch.map(o=>`<button onclick="${b(()=>{const s=typeof o.s==='function'?o.s():o.s;if(o.m)apply({mental:o.m});interview(c,i+1,score+s,qs);})}">${o.t}</button>`).join('')));}
+function interviewEnd(c,score){const total=score+(S.everHired?(S.skill-50)/20:(S.spec-50)/20);
+ if(total<c.th)return failSearch(c,'😞 면접 탈락',pick(['"좋은 인재지만 저희와 방향이 조금 다른 것 같습니다."','면접 끝나고 엘리베이터에서 면접관이 하품하는 걸 봤다. 불길했는데 역시나.','"아쉽게도…" 문자가 왔다. 면접비 2만 원은 들어왔다.']));
+ if((c.id==='big'||c.id==='pub')&&P(.12))return failSearch(c,'🙄 억까: 내정자 존재','면접 분위기 최고였다. 면접관이 웃기까지 했다. 그런데 불합격. 이미 "내정자"가 있었다고 한다. 들러리였다.');
+ offer(c);}
+function livingCost(){return expenses().reduce((a,x)=>a+x[1],0);}
+function failSearch(c,title,msg){const ch=apply({mental:-R(5,8)});log(`${c.name} 불합격`);
+ if(!S.everHired){S.searchMonths++;S.money-=800000;ch.push(['money',-800000]);let extra='\n\n한 달이 지났다. 생활비로 80만 원이 나갔다.';
+  if(S.money<0&&!S.mom){S.mom=true;S.money+=3000000;ch.push(['money',3000000]);extra+='\n\n📞 엄마: "밥은 잘 먹고 다니니? 300만 원 보냈다. 기죽지 마." …눈물이 났다.';}
+  else if(S.money<0||S.mental<=0)return ending('nojob');
+  const r=advanceCal();if(r)return ending(r);
+  return showResult(title,msg+extra,ch,jobBoard,'다른 공고 보기 ▶');}
+ return unempMonth(title,msg,ch);}
+function unempMonth(title,msg,ch=[]){const cost=livingCost();S.money-=cost;ch.push(['money',-cost]);let extra=`\n\n한 달이 지났다. 생활비 ${won(cost)}.`;
+ if(S.ui>0){S.ui--;S.money+=1900000;ch.push(['money',1900000]);extra+=` 실업급여 1,900,000원 입금 (남은 ${S.ui}개월).`;}
+ S.unempMonths++;const r=advanceCal();if(r)return ending(r);
+ if(S.unempMonths>=12)return ending('longjob');if(S.money<=-50000000)return ending('bankrupt');
+ showResult(title,msg+extra,ch,jobBoard,'다른 공고 보기 ▶');}
+function restMonth(){const ch=apply({mental:R(12,18),hp:R(10,15)});unempMonth('🛋️ 한 달 재충전','늦잠 자고, 운동하고, 밀린 드라마를 봤다. 마음이 좀 회복됐다.',ch);}
+function offer(c){const sal=S.everHired?S.offers[c.id]:c.sal+(S.spec>=65&&!c.black?200:0);
+ screen(()=>hud()+`<section class="card"><div class="bigicon">🎉</div><h2>최종 합격!</h2><p>${c.icon} <b>${c.name}</b>에서 합격 연락이 왔다! 근로계약서를 확인하자.</p>
+ <div class="contract"><h3 class="disp">근로계약서</h3><table>
+ <tr><td>회사</td><td>${c.name} (${c.type})</td></tr><tr><td>직급</td><td>${RANKS[S.rank]}${S.everHired?' (경력직)':''}</td></tr><tr><td>연봉</td><td><b>${man(sal)}</b> (세전)</td></tr>
+ <tr><td>근무시간</td><td>${c.black?'09:00 ~ 18:00 (단, 업무 상황에 따라 탄력적으로 운영)':c.startup?'자율 출퇴근 (근데 다들 밤 10시에 퇴근함)':'09:00 ~ 18:00'}</td></tr>
+ <tr><td>연장근로</td><td>${c.otPay?'연장근로수당 별도 지급':'<b class="minus">포괄임금제 (연봉에 포함)</b>'}</td></tr>
+ <tr><td>수습</td><td>${c.black?'<b class="minus">3개월, 급여 80%</b>':'3개월, 급여 100%'}</td></tr>
+ <tr><td>승진</td><td>${c.black?'사장님 재량':c.safe?'승진시험 필수 (호봉제)':'평가 포인트 + 승진시험/심사'}</td></tr></table></div>
+ <button class="btn main" onclick="${b(()=>hire(c,sal))}">✍️ 서명한다</button>
+ <button class="btn ghost" onclick="${b(()=>{log(`${c.name} 합격했지만 거절`);jobBoard();})}">거절하고 다른 회사 알아보기</button></section>`);}
+function hire(c,sal){const first=!S.everHired;S.cid=c.id;S.salary=sal;if(first)S.firstSal=sal;S.employed=true;S.everHired=true;S.companyMonths=0;S.probation=c.black?3:0;
+ S.boss=50;S.peers=Math.max(40,S.peers);S.strikes.boss=0;S.line=null;S.flags.goodBoss=false;S.flags.lineYear=undefined;S.unempMonths=0;S.ui=0;S.jobHunt=0;S.leave=15;
+ S.career.push({c:c.name,icon:c.icon,from:`${S.cal}.${S.month}`,rank:RANKS[S.rank]});
+ log(`${c.icon} ${c.name} 입사! 연봉 ${man(sal)}`);S.mental=clamp(S.mental+15,0,100);
+ const r=advanceCal();if(r)return ending(r);setKpi();
+ if(first)firstDay(0);else runEvent(CAREER_FIRST,()=>monthStart(),true);}
+const CAREER_FIRST={who:'🧑‍💼',name:'새 팀장',title:'경력직 첫 출근',text:()=>`"${S.name} ${RANKS[S.rank]}님, 경력직이시니까 바로 실전 투입이죠? 이번 주에 프로젝트 하나 맡아주세요."\n자리엔 전임자가 남긴 컵라면 용기가 있다.`,ch:[
+ {t:'"네, 바로 파악하겠습니다!"',fx:{boss:4,hp:-4,perf:3},r:'첫 주부터 야근이다. 그래도 팀장 눈빛이 좋다.'},
+ {t:'"인수인계 문서부터 받아볼 수 있을까요?"',fx:{skill:2,mental:2},r:'"인수인계요? 전임자가 다 머릿속에…" 그런 건 없었다.'}]};
+const FIRST=[
+ {who:'👨‍💼',name:'김부장',title:'첫 출근: 자기소개',text:()=>`"자자, 다들 주목! 오늘부터 같이 일할 ${S.name} 씨야. 자기소개 한번 해봐."\n15쌍의 눈이 나를 본다.`,ch:[
+  {t:'"열심히 배우겠습니다! 잘 부탁드립니다!" (무난)',fx:{boss:2,peers:2},r:'박수가 나왔다. 무난함이 최고다.'},
+  {t:'"제 MBTI는요, 취미는요…" (TMI 개그)',fn:()=>P(.5)?{r:'빵 터졌다! 분위기 메이커 등극.',fx:{peers:7,boss:2}}:{r:'…정적. 누가 "아~" 했다. 부장이 "자, 그럼 일하자" 했다.',fx:{mental:-6}}},
+  {t:'"이 회사에 뼈를 묻겠습니다!"',fx:{boss:5,peers:-2},r:'부장 눈이 반짝였다. "요즘 보기 드문 친구네!" 동료들 표정은 "저 사람 오래 못 가겠다"였다.'}]},
+ {who:'🖨️',name:'자리 배정',title:'내 자리는 어디?',text:'"자리는 저기, 복합기 옆이야." 복합기가 하루 종일 위잉 위잉 돌아간다. 모니터는 2015년산이다.',ch:[
+  {t:'"네, 감사합니다!"',fx:{mental:-2},r:'모니터를 닦고 포스트잇을 붙였다. 여기가 이제 내 자리다.'},
+  {t:'"혹시 모니터 하나 더 받을 수 있을까요?"',fn:()=>P(.4)?{r:'총무팀이 남는 모니터를 줬다! 듀얼 모니터 획득.',fx:{skill:2,mental:3}}:{r:'"신입이 벌써 장비 욕심이야?" 부장 귀에 들어갔다.',fx:{boss:-3}}}]},
+ {who:'🧑‍💼',name:'사수 이대리',title:'첫 업무',text:'"이 엑셀에서 VLOOKUP으로 거래처별 매출 좀 뽑아줘. 할 줄 알지?"',ch:[
+  {t:'"네, 할 줄 압니다!"',fn:()=>S.skill>=35?{r:'10분 만에 끝냈다. 사수: "오, 쓸만한데?"',fx:{peers:4,perf:3}}:{r:'사실 몰랐다. 3시간 동안 #N/A와 싸웠다. 사수가 조용히 와서 고쳐줬다.',fx:{mental:-5,skill:2}}},
+  {t:'"솔직히 잘 모릅니다. 알려주실 수 있나요?"',fx:{skill:4,peers:3},r:'"솔직해서 좋네." 사수가 30분 동안 엑셀 꿀팁을 전수해 줬다.'},
+  {t:'안다고 해놓고 밤새 유튜브로 배운다',fx:{skill:5,hp:-6,perf:2},r:'새벽 2시, 드디어 VLOOKUP 정복. 사수는 내가 원래 잘하는 줄 안다.'}]},
+ {who:'🍲',name:'신입 환영 점심',title:'라떼는 말이야',text:'"내가 신입 때는 말이야, 아침 7시에 와서 부장님 책상 닦고…" 부장의 신입 시절 이야기가 40분째다. 국밥이 다 식었다.',ch:[
+  {t:'"와, 정말 대단하세요!" 리액션 장인 모드',fx:{boss:5,mental:-4},r:'부장이 기분 좋게 계산했다. "자네 마음에 들어."'},
+  {t:'묵묵히 국밥을 먹는다',fx:{mental:-1},r:'국밥은 식어도 맛있다.'}]},
+];
+function firstDay(i){if(i>=FIRST.length){log('첫 출근 생존 완료');return monthStart();}runEvent(FIRST[i],()=>firstDay(i+1),true);}
+
+/* ===================== 시간 흐름 ===================== */
+function advanceCal(){S.month++;if(S.month>12){S.month=1;S.cal++;S.age++;
+  if(S.life.house){const g=R(-6,10);S.life.houseVal=Math.round(S.life.houseVal*(1+g/100));S.notices.push(`🏠 집값 ${g>=0?'+':''}${g}% → ${eok(S.life.houseVal)}`);}}
+ if(S.employed){S.careerMonths++;S.companyMonths++;}
+ if(S.month===1){if(S.age>=(isExec()?66:60))return 'retire';}
+ return null;}
+function setKpi(){const left=13-S.month;S.kpiTarget=Math.round(11*(1+Math.min(S.rank,4)*.08)*left);S.perf=0;}
+function monthStart(){S.ap=3;const c=C();
+ if(isExec()){const d=R(-5,1);S.rate=clamp(S.rate+d,0,250);if(d<=-3)S.notices.push(`📉 시장 상황 악화: 실적 달성률 ${d}%p`);}
+ if(S.month===2||S.month===9){const nm=S.month===2?'설':'추석';if(c.black)S.notices.push(`🎁 ${nm} 선물: 스팸 세트 1개 (상여금은 없다)`);else{const amt=Math.round(S.salary*10000/12*.5*(c.bonus>=1?1:.6)/1000)*1000;S.money+=amt;S.stats.earned+=amt;S.notices.push(`🎁 ${nm} 명절 상여금 ${won(amt)} 입금!`);}}
+ if(S.month===6&&!isExec())S.notices.push(`📊 상반기 중간점검: 성과 ${S.perf} / 목표 ${S.kpiTarget} (${Math.round(S.perf/Math.max(1,S.kpiTarget)*100)}%)`);
+ if(S.month===1)return january(()=>{save();officeScreen();});
+ save();officeScreen();}
+function january(next){const c=C();
+ S.leave=Math.min(25,15+Math.floor(S.companyMonths/24));
+ if(S.cal%2===0){S.strikes.hp=Math.max(0,S.strikes.hp-1);S.strikes.mental=Math.max(0,S.strikes.mental-1);}
+ if(isExec())S.rate=100;
+ if(!isExec()&&S.age>=56&&!c.black){S.salary=Math.round(S.salary*.9);S.notices.push('📉 임금피크제 적용: 연봉 10% 삭감 (만 56세)');}
+ setKpi();S.notices.push(`🎯 올해 성과 목표(KPI): ${S.kpiTarget}점`);
+ if(S.execCand){S.execCand=false;return execSelection(next);}
+ if(S.promoCand){S.promoCand=false;return promoProcess(next);}
+ next();}
+
+/* ===================== 사무실 & 행동 ===================== */
+function staffActions(){const c=C();return[
+ {id:'work',ic:'💼',t:'묵묵히 일하기',d:'성과·실력↑ / 체력·멘탈↓',end:18,me:'🧑‍💻',lines:['타닥타닥…','메일 87통 처리 중…','결재 올렸다!','오늘도 해냈다'],run:()=>({fx:{perf:R(3,5),skill:R(1,2),hp:-R(2,4),mental:-R(2,4)},r:pick(['메일 87통, 엑셀 12개, 회의 3개. 평범한 하루하루였다.','키보드와 한 몸이 되었다. 생산성 최고!','"이거 오늘까지 되지?" 됐다. 내가 해냈다.','결재가 세 번 반려됐다가 네 번째에 통과됐다. 수정한 건 날짜뿐.'])})},
+ {id:'focus',ic:'🎯',t:'집중 업무 (미니게임)',d:'오타 찾기 성공할수록 성과↑↑',cls:'special',game:true},
+ {id:'ot',ic:'🌙',t:'야근하기',d:'성과↑↑ 상사↑ / 체력·멘탈↓↓',cls:'warm',end:22,endMin:30,me:'😩',away:true,lines:['다들 퇴근했네…','편의점 김밥 각','형광등 소리만…','22시 30분, 퇴근!'],run:()=>{S.otThisMonth++;S.stats.ot++;return{fx:{perf:R(6,8),boss:2,hp:-R(7,10),mental:-R(5,7)},r:pick(['밤 10시의 사무실. 형광등 소리만 들린다. 부장은 7시에 퇴근했다.','편의점 삼각김밥으로 저녁을 때웠다. 창밖 야경이 예쁘다. 슬프게도.','야근하는 모습을 부장이 봤다! "열심히 하네~" 그 한마디에 또 남는다.'])+(c.otPay?'\n(야근수당은 월급날 정산된다)':'\n(포괄임금제라 수당은 없다…)')};}},
+ {id:'off',ic:'🏃',t:'칼퇴하기',d:'체력·멘탈↑ / 상사 호감↓',cls:'green',end:18,me:'🏃',pos:92,gone:true,lines:['5시 59분…','6시 땡!','먼저 들어가보겠습니다~'],run:()=>({fx:{hp:R(5,7),mental:R(6,9),boss:c.safe||c.startup?-1:c.black?-6:-3},r:pick(['6시 정각, 가방을 들고 일어났다. 뒤통수가 뜨겁다. 부장의 시선이다.','"먼저 들어가보겠습니다~" 아무도 대답하지 않았다. 상관없다. 자유다!','칼퇴 후 헬스장, 저녁, 넷플릭스. 이게 바로 워라밸.'])})},
+ {id:'coffee',ic:'☕',t:'동료랑 커피·수다',d:'동료·멘탈↑ / 성과 조금↓',cls:'green',end:17,pos:9,me:'🗣️',lines:['커피 한잔 할까?','부장님 오늘 좀…ㅋㅋ','그거 들었어?'],run:()=>{const risk=P(.22);if(risk)S.flags.gossipRisk=true;return{fx:{peers:R(4,6),mental:R(3,5),perf:-1},r:pick(['탕비실에서 부장 뒷담화 30분. 회사 생활의 비타민이다.','동기들이랑 "우리 언제 퇴사하냐" 토크. 연대감 상승.','옆 팀 소문을 들었다. 정보력도 실력이다.'])+(risk?'\n…근데 단톡방에 좀 심한 말을 남긴 것 같다.':'')};}},
+ {id:'suck',ic:'🍯',t:'상사 비위 맞추기',d:'상사 호감↑↑ / 동료·멘탈↓',cls:'warm',end:17,pos:66,me:'😁',lines:['부장님~','넥타이 멋지세요!','하하하하 (광대 아픔)'],run:()=>({fx:{boss:Math.round(R(5,7)*c.politics),peers:-R(2,4),mental:-R(3,5)},r:pick(['"부장님 넥타이 오늘 진짜 멋지세요!" 동료들의 차가운 시선이 느껴진다.','부장 아재개그에 제일 크게 웃었다. 광대가 아프다.','부장이 좋아하는 골프 얘기를 공부해 갔다. "자네 골프 쳐?" 이제 쳐야 한다.'])})},
+ {id:'study',ic:'📚',t:'자기계발',d:'실력↑↑ / 돈 15만·체력↓',end:21,me:'🤓',lines:['퇴근 후 학원…','졸면 안 돼…','이게 다 무기가 된다'],run:()=>({fx:{skill:R(4,6),money:-150000,hp:-2,mental:-1},r:pick(['퇴근 후 학원 등록. 졸면서 들었지만 뭔가 남았다.','주말에 자격증 공부. 언젠간 이게 무기가 된다.','엑셀 매크로를 배웠다. 업무 시간이 반으로 줄었다(는 비밀).'])})},
+ ...(S.promoCand||S.rank<4&&S.promoPts>=PROMO[S.rank].pts-3?[{id:'exam',ic:'📖',t:'승진시험 대비',d:`시험 힌트(50:50) +1 · 실력↑ (보유 ${S.hints})`,cls:'special',end:23,me:'📖',lines:['기출문제 풀이…','SUMIF… VLOOKUP…','손익분기점이 뭐였더라','외웠다!'],run:()=>({fx:{hints:1,skill:2,hp:-3,mental:-3},r:'승진시험 기출문제를 달달 외웠다. 시험 때 쓸 수 있는 50:50 힌트가 하나 늘었다.'})}]:[]),
+ {id:'vac',ic:'🏖️',t:'연차 쓰기',d:`체력·멘탈↑↑ (남은 ${S.leave}일)`,cls:'green',dis:S.leave<=0,end:18,beach:true,me:'😎',lines:['알람 없는 아침','바다다!!','이게 사는 거지'],run:vacation},
+ {id:'hunt',ic:'🔍',t:'몰래 이직 준비',d:`이직준비↑ (${S.jobHunt}) / 걸리면 큰일`,end:13,me:'🕵️',bossVisit:true,lines:['(채용사이트 몰래…)','헤드헌터한테 연락…','앗 부장이 온다!'],run:()=>{const caught=P(.15);return{fx:Object.assign({jobHunt:1,skill:1,mental:-2},caught?{boss:-10}:{}),r:caught?'점심시간에 채용 사이트 보다가 부장한테 걸렸다. "…요즘 바쁜가 봐?" 등에 식은땀이 흐른다.':pick(['이력서를 업데이트했다. 경력란이 생각보다 비어 있다.','점심시간에 몰래 커피챗을 다녀왔다. 바깥 세상은 연봉이 다르다.','헤드헌터 사이트에 프로필을 올렸다. 두근두근.'])};}},
+ {id:'quit',ic:'📝',t:'사직서 쓰기',d:'이직 / 은퇴 / 인생 2막',cls:'danger'},
+];}
+function execActions(){return[
+ {id:'strat',ic:'📈',t:'전략회의 주도',d:'실적↑ 실력↑ / 체력·멘탈↓',end:20,me:'🧐',lines:['다음 분기 전략은…','숫자를 보세요','결론부터 말하면'],run:()=>({fx:{rate:R(1,4),skill:1,hp:-R(4,6),mental:-R(3,5)},r:pick(['임원 회의에서 PT를 했다. 회장님이 고개를 끄덕였다.','사업부 전략을 다시 짰다. 숫자가 조금씩 움직인다.','본부장 회의 4시간. 결론은 "다음 주에 다시".'])})},
+ {id:'bet',ic:'🎲',t:'신사업 투자',d:'실적 대박 or 쪽박 (도박)',cls:'warm',end:21,me:'😬',lines:['신사업 승인 서명…','시장 반응은…?','두근두근'],run:()=>{const v=pick([-14,-10,-6,-2,4,8,12,18,24]);return{fx:{rate:v,mental:v>0?6:-8},r:v>0?`신사업이 터졌다! 언론에 "${C().name}의 승부수" 기사가 났다.`:'신사업 성적이 처참하다. 이사회에서 "누가 승인했냐"는 말이 나왔다. 나다.'};}},
+ {id:'cut',ic:'✂️',t:'비용 절감·구조조정',d:'실적↑↑ / 조직 장악력·멘탈↓↓',cls:'danger',end:19,me:'😐',lines:['인력 효율화 방안…','명단을 결재했다','…'],run:()=>{S.flags.cuts=(S.flags.cuts||0)+1;return{fx:{rate:R(6,9),peers:-R(10,14),mental:-R(6,9)},r:'희망퇴직 명단에 서명했다. 신입 때 내 사수였던 이차장 이름이 있었다. 숫자는 좋아졌다.'};}},
+ {id:'golf',ic:'⛳',t:'회장님 골프 접대',d:'회장 신임↑↑ / 체력↓ 돈↓',cls:'green',end:18,beach:false,me:'🏌️',pos:66,lines:['나이스 샷!','회장님 굿샷!!','(일부러 OB)'],run:()=>({fx:{boss:R(5,8),hp:-4,money:-500000},r:'일부러 OB를 두 번 냈다. 회장님이 "자네 골프는 영 아니구먼" 하며 웃었다. 성공이다.'})},
+ {id:'media',ic:'🎤',t:'언론 인터뷰·대외활동',d:'회장 신임↑ 실적↑ / 말실수 주의',end:17,me:'🎙️',lines:['안녕하십니까','저희 회사의 비전은…','(카메라 의식)'],run:()=>P(.12)?{fx:{boss:-10,mental:-6},r:'인터뷰에서 "직원들은 좀 더 갈아 넣어야죠"라고 말해버렸다. 실시간 검색어 1위. 회장실에서 전화가 왔다.'}:{fx:{boss:3,rate:1,mental:-2},r:'경제지 인터뷰가 실렸다. 사진이 잘 나왔다. 회장님이 스크랩해 뒀다고 한다.'}},
+ {id:'care',ic:'🤝',t:'부하직원 챙기기',d:'조직 장악력↑ 멘탈↑',cls:'green',end:20,pos:31,me:'😊',lines:['다들 고생 많지?','오늘 회식은 내가!','편하게 얘기해 (진짜로)'],run:()=>({fx:{peers:R(6,9),mental:2,rate:1,money:-400000},r:'팀장들과 저녁을 먹으며 이야기를 들었다. 법카 아니고 내 카드로 샀다.'})},
+ {id:'rest',ic:'🧘',t:'건강관리·휴식',d:'체력·멘탈↑↑',cls:'green',end:18,beach:true,me:'😌',lines:['오랜만의 휴가','건강이 최고다','…회사 전화는 안 받는다'],run:()=>({fx:{hp:R(10,14),mental:R(10,14),boss:-1},r:'건강검진 결과에 놀라서 일주일 쉬었다. 임원은 몸이 자산이다.'})},
+ {id:'hunt',ic:'🔍',t:'경쟁사 이동 타진',d:`스카우트 제안 확률↑ (${S.jobHunt})`,end:13,me:'🕵️',lines:['(헤드헌터와 조찬)','조건이 어떻게…'],run:()=>({fx:{jobHunt:1,mental:-1},r:'호텔 조식당에서 헤드헌터를 만났다. "시장에서 평가가 좋으십니다."'})},
+ {id:'quit',ic:'📝',t:'퇴임 의사 표명',d:'회사원 졸업',cls:'danger'},
+];}
+function vacation(){S.leave--;if(C().black&&P(.4)){S.leave++;return{fx:{mental:-6},r:'"연차? 지금 이 시기에? 다들 바쁜데…" 사장님 한마디에 연차 신청서를 다시 서랍에 넣었다. (억까)',beachOff:true};}
+ if(P(.25))return{fx:{hp:10,mental:4,boss:-1},r:'제주도 갔다! …둘째 날 부장 전화. "그 파일 어디 있어?" 바닷가에서 노트북을 켰다. (억까)'};
+ return{fx:{hp:R(12,16),mental:R(14,18),boss:-2},r:pick(['알람 없이 일어난 평일 아침. 세상이 이렇게 아름다웠나.','하루 종일 침대와 한 몸. 완벽한 휴가였다.','평일 낮 바닷가. 다들 일하는 시간에 나는 파도를 본다.'])};}
+function actionPanel(){const acts=isExec()?execActions():staffActions();const warns=[];
+ if(S.hp<25)warns.push('❤️ 체력이 위험해! 0이 되면 쓰러져서 병가 (경고 누적 3번이면 끝).');if(S.mental<25)warns.push('🧠 멘탈이 바닥이야. 0이 되면 번아웃 휴직!');if(S.boss<20)warns.push(isExec()?'🤵 회장 신임이 바닥… 경질 위기!':'👔 상사가 날 거슬려 해. 0이 되면 경고장!');if(S.money<0)warns.push(`💸 마이너스 통장 사용 중 (${won(S.money)}). -5천만 원이면 파산!`);
+ if(S.unpaid>0)warns.push(`💢 밀린 월급 ${won(S.unpaid)}이 아직 안 들어왔다.`);
+ const kp=Math.round(S.perf/Math.max(1,S.kpiTarget)*100);
+ return `<section class="card"><div class="aphead"><h2>📅 ${S.month}월엔 뭐 하지?</h2><div class="ap">${[0,1,2].map(i=>`<i class="${i<S.ap?'on':''}"></i>`).join('')}</div><span class="k">남은 행동 ${S.ap}/3</span>
+ <div class="speed">${[['🐢',1],['⚡',2],['⏭️',0]].map(([l,v])=>`<button class="${SPEED===v?'on':''}" onclick="${b(()=>{SPEED=v;store('osSpeed',String(v));officeScreen();})}">${l}</button>`).join('')}</div></div>
+ <p class="tip">💬 ${pick(TIPS)}</p>
+ ${isExec()?`<div class="k">📈 올해 실적 달성률 <b>${S.rate}%</b> (100% 이상 유지해야 재계약)</div><div class="progress"><div style="width:${Math.min(100,S.rate/1.5)}%;background:${S.rate>=100?'var(--g-green)':'var(--g-red)'}"></div></div>`
+ :`<div class="k">🎯 올해 KPI 성과 ${S.perf} / ${S.kpiTarget} (${kp}%)</div><div class="progress"><div style="width:${Math.min(100,kp)}%"></div></div>`}
+ ${S.notices.map(n=>`<div class="good">${n}</div>`).join('')}${warns.map(w=>`<div class="warn">${w}</div>`).join('')}
+ <div class="actions">${acts.map(a=>`<button class="act ${a.cls||''} ${a.dis?'dis':''}" onclick="${b(()=>actionGo(a))}"><div class="ic">${a.ic}</div><div><div class="t">${a.t}</div><div class="d">${a.d}</div></div></button>`).join('')}</div>
+ <div class="row" style="margin-top:12px"><button class="btn sm" onclick="${b(()=>{save();titleScreen();})}">💾 저장하고 타이틀로</button></div></section>`;}
+function officeScreen(st,panelFn){screen(()=>hud()+sceneHtml(st||{bubble:pick(['이번 달도 버텨보자','월급날까지 D-30…','커피부터 마시자','오늘 회의 몇 개더라'])})+`<div id="panel">${panelFn?panelFn():actionPanel()}</div>`+logBox());}
+function actionGo(a){if(a.dis)return;if(a.id==='quit')return quitConfirm();if(a.game)return typoGame(0,0);
+ S.notices=[];const res=a.run();if(res.beachOff)a=Object.assign({},a,{beach:false,me:'😤'});
+ const ch=apply(res.fx);S.ap--;log(`${a.ic} ${a.t}`);
+ const card=()=>`<section class="card"><h2>${a.ic} ${a.t}</h2><div class="txt">${nl(res.r)}</div>${chipsHtml(ch)}<button class="btn main" onclick="${b(()=>guard(proceed))}">${S.ap>0?`확인 (남은 행동 ${S.ap}) ▶`:'월말 결산하러 가기 ▶'}</button></section>`;
+ animate(a,ch,(st,live)=>{if(live&&$id('panel')){const h=$id('hud');if(h)h.outerHTML=hud();$id('panel').classList.remove('busy');$id('panel').innerHTML=card();}else officeScreen(st,card);});}
+function proceed(){if(!S.employed)return;S.ap>0?officeScreen():monthEnd();}
+function guard(next){if(S.money<=-50000000)return ending('bankrupt');
+ if(S.hp<=0){S.strikes.hp++;if(S.strikes.hp>=3)return ending('hospital');S.hp=55;S.mental=clamp(S.mental-5,0,100);S.money-=600000;S.ap=0;log('🚑 과로로 쓰러짐');
+  return strikeScreen('🚑','과로로 쓰러졌다','회의 도중 눈앞이 하얘졌다. 정신을 차리니 병원이었다. 의사가 한 달은 쉬라고 했다.\n병원비 60만 원, 이번 달 남은 행동 없음.','hp',next);}
+ if(S.mental<=0){S.strikes.mental++;if(S.strikes.mental>=3)return ending('burnout');S.mental=50;S.ap=0;S.noPay=1;log('🫠 번아웃 휴직');
+  return strikeScreen('🫠','번아웃 — 한 달 휴직','아침에 눈을 떴는데 몸이 움직이지 않았다. 회사에 휴직계를 냈다.\n이번 달은 무급 휴직이다.','mental',next);}
+ if(S.boss<=0){if(isExec())return ending('exec_fired');S.strikes.boss++;log('📛 경고장');
+  if(S.strikes.boss>=3)return unemploy('권고사직 (경고 3회 누적)',S.salary*10000/12*3,{ui:true});
+  S.boss=25;return strikeScreen('📛','인사팀 경고장','"근무 태도 및 성과 불량으로 경고 처분합니다." 책상 위에 경고장이 놓였다.\n3번 쌓이면 권고사직이다.','boss',next);}
+ next();}
+function strikeScreen(ic,title,text,k,next){const n=S.strikes[k];screen(()=>hud()+`<section class="card"><div class="bigicon">${ic}</div><h2 style="text-align:center">${title}</h2><div class="txt">${nl(text)}</div>
+ <div class="strikes">${[0,1,2].map(i=>`<i class="${i<n?'on':''}">${ic}</i>`).join('')}</div><p class="k" style="text-align:center">경고 ${n}/3 — 3번 쌓이면 ${k==='boss'?'권고사직':'게임 오버'}${k!=='boss'?' (2년마다 1개씩 회복)':''}</p>
+ <button class="btn main" onclick="${b(next)}">다시 일어선다 ▶</button></section>`);}
+function quitConfirm(){const nw=netWorth();const ex=isExec();
+ screen(()=>hud()+sceneCard('📝',ex?'퇴임':'사직서',ex?'회사를 떠날 때인가?':'정말 그만둘 거야?',`현재 잔고 ${won(S.money)}, 순자산 ${eok(nw)}.\n어떤 퇴사를 할지 골라.`,
+ (ex?'':`<button onclick="${b(()=>unemploy('자발적 퇴사',0,{}))}">🔄 퇴사하고 다른 회사 알아보기 (경력직 재취업)</button>`)+
+ (nw>=1000000000?`<button onclick="${b(()=>ending('fire'))}">🏝️ 경제적 자유 달성! 조기 은퇴한다</button>`:'')+
+ `<button onclick="${b(()=>ending(ex?'exec_retire':S.age>=55?'retire':'quit_life'))}">🏁 회사원 인생 졸업 (게임 종료)</button><button onclick="${b(()=>officeScreen())}">😮‍💨 …아니야. 참자</button>`));}
+
+/* ===================== 미니게임: 오타 찾기 ===================== */
+function typoGame(round,score){if(round>=5){const fx={perf:score*2,skill:1,hp:-3,mental:-(5-score)};if(score===5)fx.boss=3;const ch=apply(fx);S.ap--;S.notices=[];log(`🎯 집중 업무 ${score}/5`);
+  const msg=score===5?'완벽하다! 오타 하나 없는 보고서. 부장이 "이번 건 손댈 데가 없네"라고 했다.':score>=3?'꽤 꼼꼼하게 검토했다. 보고서가 무사히 결재됐다.':'오타가 그대로 나갔다. "결재"를 "결제"로 쓴 보고서가 사장님까지 올라갔다…';
+  return officeScreen({time:'evening',clock:'18:00',me:score>=3?'😎':'😵',bubble:score>=3?'검토 끝!':'망했다…'},()=>`<section class="card"><h2>🎯 집중 업무 결과: ${score}/5</h2><div class="txt">${msg}</div>${chipsHtml(ch)}<button class="btn main" onclick="${b(()=>guard(proceed))}">${S.ap>0?'확인 ▶':'월말 결산하러 가기 ▶'}</button></section>`);}
+ const [right,wrong]=pick(TYPO);const odd=R(0,15);const tk=TK+1;const sec=SPEED===2?5:7;
+ screen(()=>hud()+`<section class="card"><h2>🎯 보고서 오타 찾기 — ${round+1}/5</h2><p class="k">16개 단어 중 <b>틀린 단어 하나</b>를 ${sec}초 안에 찾아 클릭해! (현재 ${score}점)</p>
+ <div class="timer"><div id="tm"></div></div><div class="grid4">${Array.from({length:16},(_,i)=>`<button class="tile" onclick="${b(()=>typoGame(round+1,score+(i===odd?1:0)))}">${i===odd?wrong:right}</button>`).join('')}</div></section>`,
+ ()=>{if(!CAN_ANIM)return;const tm=$id('tm');requestAnimationFrame(()=>{tm.style.transitionDuration=sec+'s';tm.style.width='0%';});setTimeout(()=>{if(TK===tk)typoGame(round+1,score);},sec*1000);});}
+
+/* ===================== 이벤트 ===================== */
+function unempRes(reason,extra,opt){return{unemp:{reason,extra:extra||0,opt:opt||{}}};}
+const EVENTS=[
+ {id:'font',w:3,who:'👨‍💼',name:'김부장',title:'보고서가 이게 뭐야',text:'"이거 누가 했어? 폰트가 왜 맑은 고딕이야? 우리 회사는 굴림체 쓰는 거 몰라? 표 테두리는 왜 이렇게 얇아!"',ch:[
+  {t:'"죄송합니다, 바로 수정하겠습니다!"',fx:{boss:2,mental:-5},r:'굴림체로 바꿔서 다시 올렸다. 부장은 3초 보고 "그래, 이게 낫네" 했다. 내용은 하나도 안 읽었다.',scold:1},
+  {t:'"지난주에 맑은 고딕 쓰라고 하셨는데요…"',fn:()=>P(.3)?{r:'"어? 그랬나? …아무튼 굴림으로 해." 그래도 이긴 것 같다(?)',fx:{mental:3,boss:-2}}:{r:'"내가 언제! 말대꾸하지 말고 고쳐!" 사무실이 조용해졌다.',fx:{boss:-8,mental:-6},scold:1}},
+  {t:'웃으면서 속으로 욕하기',fx:{mental:-8,boss:1},r:'"네 부장님~" 표정 관리는 완벽했다. 마음은 이미 퇴사했다.',scold:1}]},
+ {id:'steal',w:2,who:'😏',name:'박과장',title:'정치질: 내 기획안이 왜 거기서 나와',text:'임원 회의에서 박과장이 발표한 기획안… 어젯밤 새벽 2시까지 내가 만든 그거다. 슬라이드 하단 작성자: 박○○.',ch:[
+  {t:'회의 끝나고 이사님께 직접 말씀드린다',fn:()=>P(.4+S.skill/250)?{r:'이사님이 메일 기록을 확인하고 고개를 끄덕였다. "자네가 했구만." 박과장 얼굴이 하얗게 질렸다.',fx:{perf:8,boss:4,mental:6}}:{r:'"팀 성과는 팀 거지, 뭘 그렇게 따져?" 이사님 반응은 싸늘했다. 박과장은 이제 나를 노려본다.',fx:{boss:-8,mental:-6,peers:-3}}},
+  {t:'조용히 작업 기록·메일을 증거로 모아둔다',fx:{mental:-3,skill:1},r:'일단 참는다. 대신 드라이브에 "증거" 폴더를 만들었다. 언젠가는 쓸 날이 오겠지.',flag:'evidence'},
+  {t:'그냥 넘어간다. 회사가 다 그렇지',fx:{mental:-9,perf:-4},r:'박과장은 그 기획안으로 칭찬받았다. 나는 그 기획안의 후속 작업을 맡게 됐다.'}]},
+ {id:'card',w:2,who:'👨‍💼',name:'김부장',title:'부조리: 법카 영수증 좀',text:'"이거 지난 주말 영수증인데, 거래처 미팅으로 처리 좀 해줘."\n…한우 오마카세 4인, 87만 원. 주말이고, 사진 속엔 부장님 가족이 있다.',ch:[
+  {t:'"네, 처리하겠습니다"',fx:{boss:7,mental:-5},r:'회의록까지 지어내서 처리했다. 부장이 어깨를 툭 쳤다. "자네 센스 있어."',corrupt:1},
+  {t:'"이건 좀 곤란합니다…"',fx:{boss:-9,mental:2},r:'"허, 융통성이 없어서야." 부장은 영수증을 다른 사람에게 줬다. 그 뒤로 내 결재는 유난히 늦게 난다.'},
+  {t:'감사팀에 익명 제보한다',fn:()=>{const r=Math.random();if(r<.45)return{r:'감사팀이 움직였다! 부장은 법카 사적 유용으로 정직 3개월. 새 팀장은 꽤 합리적인 사람이다. 아무도 제보자가 나인 줄 모른다.',fx:{mental:10,boss:15,perf:3},flagSet:['goodBoss',true]};if(r<.85)return{r:'"익명"이라더니… 감사팀 누군가가 흘렸다. 부장은 경고로 끝났고, 나는 이제 "그 사람"이 됐다.',fx:{boss:-22,mental:-12,peers:-5}};return unempRes('보복성 권고사직 (제보자 신원 노출)',0,{ui:true});}}]},
+ {id:'rebate',w:1.5,cond:()=>S.rank>=1,who:'🤵',name:'거래처 최 사장',title:'부정부패: 작은 성의입니다',text:'"이번 납품 건 잘 부탁드립니다~" 쇼핑백 안에 백화점 상품권이 두툼하다. 대충 봐도 100만 원.',ch:[
+  {t:'받는다. 다들 받는다던데',fx:{money:1000000,mental:-3},r:'통장은 따뜻해졌지만 마음 한구석이 찜찜하다.',corrupt:1},
+  {t:'정중히 돌려보낸다',fx:{mental:3,skill:1},r:'"원칙이 있으시네요." 최 사장은 머쓱하게 웃었다.'},
+  {t:'받아서 윤리경영팀에 신고한다',fx:{perf:3,boss:-2,peers:-3},r:'회사 게시판에 "모범 사례"로 올라갔다. 영업팀 사람들은 날 피한다.'}]},
+ {id:'fraud',w:1,cool:36,cond:()=>S.companyMonths>=12&&S.rank>=1,who:'🕴️',name:'정이사',title:'부정부패: 숫자 좀 만지자',text:'"이번 분기 실적, 3억만 다음 분기 매출에서 당겨서 잡아. 주주총회 끝나면 원래대로 돌리면 돼. 다 회사를 위한 거야."\n명백한 회계 조작이다.',ch:[
+  {t:'시키는 대로 한다',fx:{boss:10,perf:5,mental:-10},r:'숫자는 예뻐졌다. 정이사가 "자네는 크게 될 사람이야"라고 했다. 잠이 잘 안 온다.',corrupt:2},
+  {t:'못 하겠다고 버틴다',fx:{boss:-12,mental:-4},r:'"그럼 다른 사람 시키지." 일은 결국 다른 사람이 했다. 그 뒤로 중요한 회의에 안 불린다.'},
+  {t:'자료를 모아 금융당국에 공익신고한다',fn:()=>P(.55)?{r:'회계 조작이 뉴스에 났다! 정이사는 검찰 조사를 받고 물러났다. 나는 공익신고자 보호를 받았고, 새 경영진은 나를 "회사의 양심"이라고 불렀다.',fx:{mental:20,boss:30,perf:10,peers:10},flagSet:['hero',true]}:unempRes('공익신고 후 보복 해고 (소송 진행 중)',0,{ui:true})}]},
+ {id:'audit',w:2,cond:()=>S.corruption>=3,who:'🕵️',name:'감사팀',title:'내부 감사 시작',text:'감사팀이 최근 2년 치 법카·거래 내역을 전수조사한다고 한다. 내 이름이 들어간 서류가… 꽤 있다.',ch:[
+  {t:'솔직하게 털어놓고 선처를 구한다',fn:()=>P(.55)?{r:'"윗선 지시였다"는 진술이 인정돼 견책으로 끝났다. 대신 윗선의 미움은 확실히 샀다.',fx:{boss:-20,mental:-10},reset:true}:unempRes('징계 해고 (부정 행위 적발)',0,{stigma:true})},
+  {t:'모르는 척 버틴다',fn:()=>P(.4)?{r:'운 좋게 넘어갔다. 감사는 엉뚱한 팀만 털고 끝났다. 심장이 아직도 쿵쿵 뛴다.',fx:{mental:-12},reset:true}:unempRes('징계 해고 (부정 행위 적발)',0,{stigma:true})},
+  {t:'모아둔 증거로 윗선을 같이 끌고 간다',cond:()=>S.flags.evidence,fn:()=>({r:'증거 폴더가 빛을 발했다. 지시한 윗선이 징계를 받고, 나는 경고로 끝났다.',fx:{mental:5,boss:-10,peers:5},reset:true})}]},
+ {id:'hoesik',w:3,cool:2,who:'🍻',name:'김부장',title:'오늘 회식!',text:'퇴근 10분 전. "자자, 오늘 다들 별일 없지? 삼겹살에 소주 한잔 하자고!"\n별일 있었는데 방금 없어졌다.',ch:[
+  {t:'끝까지 달린다 (3차 노래방까지)',fn:()=>{S.stats.drink++;return P(.5)?{r:'노래방에서 부장 18번에 탬버린을 미친 듯이 쳤다. "자네 물건이네!" 등을 두드려 줬다. 다음 날 숙취로 죽는 줄.',fx:{boss:9,peers:4,hp:-12,mental:-4,money:-30000}}:{r:'2차에서 부장이 "요즘 애들은 말이야…"로 시작하는 연설을 1시간 했다. 새벽 택시비 4만 원은 내 돈.',fx:{boss:5,hp:-12,mental:-9,money:-40000}};}},
+  {t:'1차만 먹고 슬쩍 빠진다',fn:()=>{S.stats.drink++;return P(.6)?{r:'"화장실 좀…" 하고 그대로 지하철역으로 뛰었다. 아무도 몰랐다(고 믿고 싶다).',fx:{boss:1,hp:-4,mental:2}}:{r:'신발 신다가 부장한테 걸렸다. "어디 가? 2차 가야지~" 결국 끌려갔다.',fx:{boss:3,hp:-10,mental:-8}};}},
+  {t:'"오늘은 선약이 있어서요" 불참',fx:{boss:-6,peers:-2,mental:6,hp:3},r:'"요즘 애들은 회식도 안 와." 다음 날 단톡방에 회식 사진이 올라왔다. 나만 없다.'}]},
+ {id:'kakao',w:2.5,who:'📱',name:'김부장 (카톡)',title:'밤 11시 47분의 카톡',text:'[김부장] 자나?\n[김부장] 내일 아침 회의 자료 좀 수정해줘. 3페이지 표 순서 바꾸고.\n[김부장] 아침 8시까지.',ch:[
+  {t:'바로 노트북 켜서 수정한다',fx:{boss:4,hp:-6,mental:-7,perf:2},r:'새벽 1시에 끝냈다. "확인했다" 답장은 없었다. 아침 회의에서 그 페이지는 열리지도 않았다.'},
+  {t:'읽씹하고 내일 일찍 출근해서 한다',fx:{hp:-3,mental:-2,boss:-1},r:'7시에 출근해서 고쳤다. 부장은 9시 반에 왔다.'},
+  {t:'"근무시간 외 업무지시는 좀…" 답장',fn:()=>P(.3)?{r:'"아 그래, 미안 미안. 내일 해." 의외로 쿨하다? 다음 날 분위기는 좀 어색했다.',fx:{mental:6,boss:-3}}:{r:'"회사 생활 그렇게 할 거야?" 다음 날 부장은 하루 종일 나한테만 말을 안 걸었다.',fx:{boss:-10,mental:-3}}}]},
+ {id:'nepo',w:1.5,cool:36,who:'🪂',name:'사장 조카 (신입)',title:'부조리: 낙하산이 떨어졌다',text:'사장님 조카가 우리 팀으로 왔다. 첫날부터 10시 출근, 점심 2시간. 근데 자기 일을 나한테 넘긴다.\n"선배님이 잘하시잖아요~"',ch:[
+  {t:'다 받아준다. 언젠가 덕 보겠지',fx:{hp:-6,mental:-8,perf:3},r:'조카 일까지 하느라 3주 연속 야근. 성과 보고서엔 조카 이름이 먼저 올라갔다.'},
+  {t:'부장님께 업무 분장을 요청한다',fn:()=>P(.35)?{r:'부장이 의외로 조카에게 "네 일은 네가 해야지" 했다. 오, 정의는 살아있다.',fx:{mental:5,boss:2}}:{r:'"사장님 조카야… 알지? 좀 챙겨줘." 부장도 어쩔 수 없었다.',fx:{mental:-8,boss:-2}}},
+  {t:'대놓고 거절한다',fx:{mental:4,boss:-6,peers:3},r:'"그건 네 업무야." 조카는 삐졌고, 다음 주에 사장님이 "요즘 팀 분위기 어떤가" 물었다고 한다…'}]},
+ {id:'line',w:2,cool:48,cond:()=>S.companyMonths>=6&&S.flags.lineYear===undefined,who:'🧑‍💼',name:'이대리',title:'정치질: 줄을 서야 할 때',text:'"야, 들었어? 정이사랑 최상무가 다음 대표 자리 놓고 붙었대. 다들 줄 서는 분위기야. 너는 어느 쪽이야?"',ch:[
+  {t:'정이사 라인 (실적파, 냉정함)',fx:{boss:4,hp:-3},r:'정이사 주재 아침 7시 조찬 모임에 얼굴을 비추기 시작했다. 체력이 깎인다.',line:'jung'},
+  {t:'최상무 라인 (인맥파, 골프왕)',fx:{boss:4,hp:-3},r:'최상무 주말 골프 모임에서 카트를 몰기 시작했다. 주말이 사라졌다.',line:'choi'},
+  {t:'중립. 일로만 승부한다',fx:{mental:3},r:'"너 그러다 둘 다한테 찍힌다?" 이대리가 걱정스럽게 말했다.',line:'none'}]},
+ {id:'lineres',w:6,cond:()=>S.flags.lineYear!==undefined&&S.flags.lineYear!==null&&S.cal>S.flags.lineYear,who:'📣',name:'사내 공지',title:'신임 대표이사 발표',text:'드디어 인사 발표가 났다. 사내 게시판에 접속자가 폭주한다. 신임 대표이사는…',ch:[{t:'두근두근… 공지를 연다',fn:()=>{S.flags.lineYear=null;const w=pick(['jung','choi']);const wn=w==='jung'?'정이사':'최상무';
+  if(!S.line)return{r:`${wn} 대표 체제가 출범했다. 중립이었던 나는… 양쪽 다 나를 잘 모른다. 조용히 살아남았다.`,fx:{mental:3}};
+  if(S.line===w){S.flags.promoBoost=true;return{r:`${wn}이 신임 대표가 됐다! 내 라인이 이겼다. 좋은 프로젝트가 떨어지고, 올해 평가·임원 심사에 가산점이 붙는다.`,fx:{boss:20,perf:12,mental:10}};}
+  return{r:`${wn}이 대표가 됐다. 내 라인이 졌다. 다음 주 인사에서 "지방 물류센터 혁신 TF"로 발령났다… (정치질의 대가)`,fx:{boss:-20,mental:-15,perf:-10}};}}]},
+ {id:'gossip',w:4,cond:()=>S.flags.gossipRisk,who:'💬',name:'사내 메신저',title:'단톡방이 유출됐다',text:'동기 단톡방에서 "김부장 오늘 또 시작함ㅋㅋ"이라고 했던 캡처가… 김부장 손에 들어갔다고 한다.',after:()=>{S.flags.gossipRisk=false;},ch:[
+  {t:'먼저 찾아가서 사과한다',fx:{boss:-6,mental:-8},r:'"그래, 젊을 때 그럴 수 있지." 웃고는 있는데 눈이 안 웃는다.'},
+  {t:'끝까지 모른 척',fn:()=>P(.4)?{r:'다른 동기가 "제가 쓴 거예요" 하고 총대를 멨다. 고마운 놈… 커피 한 달 쏘기로 했다.',fx:{peers:5,mental:-3}}:{r:'부장이 회의 중에 "누구는 뒤에서 내 욕을 한다더라"며 나를 빤히 봤다.',fx:{boss:-14,mental:-8}}}]},
+ {id:'blame',w:2.5,who:'😤',name:'박과장',title:'억까: 내 탓이라고?',text:'박과장이 거래처에 보낸 견적서 숫자가 0 하나 틀렸다. 근데 회의에서 "이거 ○○씨가 검토했잖아?"\n…난 본 적도 없다.',ch:[
+  {t:'"검토한 적 없습니다" 메일 기록을 제시한다',fn:()=>S.flags.evidence?{r:'증거 폴더 출동. 메일 기록에 내 이름이 없다는 게 바로 증명됐다. 박과장이 헛기침을 했다.',fx:{boss:3,mental:5}}:(P(.5)?{r:'결재 라인에 내가 없다는 게 확인됐다. 박과장은 "아 착각했네~" 하고 끝.',fx:{mental:-2}}:{scold:1,sisal:{why:'거래처 견적서 금액 오류',intro:'"지금 과장님 탓하는 거야? 검토 라인에 있었으면 책임도 있는 거야. 시말서 써서 오늘 퇴근 전까지 내."\n…박과장이 뒤에서 웃고 있다.',fx:{boss:-6,mental:-6}}})},
+  {t:'그냥 시말서 쓴다',fn:()=>({scold:1,sisal:{why:'거래처 견적서 금액 오류',intro:'"그래, 깔끔하게 시말서 한 장 쓰고 끝내자. 양식은 공유폴더에 있어."\n내가 뭘 잘못했는지부터 생각해 내야 한다.',fx:{mental:-5,perf:-3}}})}]},
+ {id:'late',w:1.5,cool:6,who:'🚇',name:'출근길',title:'억까: 지하철이 멈췄다',text:'2호선이 신호 장애로 30분 동안 멈췄다. 9시 27분, 사무실 문을 열자 부장이 시계를 본다.\n"지금이 몇 시지?"',ch:[
+  {t:'지하철 지연증명서를 뽑아서 낸다',fn:()=>P(.5)?{r:'"…그래, 지하철 문제면 어쩔 수 없지." 증명서가 나를 살렸다.',fx:{mental:-2}}:{scold:1,sisal:{why:'근무시간 지각 (09:27 출근)',intro:'"증명서? 그러니까 30분 더 일찍 나왔어야지. 나 때는 7시에 왔어. 시말서 써."',fx:{boss:-3,mental:-5}}}},
+  {t:'"죄송합니다…" 고개를 숙인다',fn:()=>({scold:1,sisal:{why:'근무시간 지각 (09:27 출근)',intro:'"죄송하면 다야? 기강이 해이해졌어. 시말서 써서 가져와."',fx:{mental:-4}}})}]},
+ {id:'wrongmail',w:1.2,cool:12,cond:()=>S.rank<=3,who:'📧',name:'Outlook',title:'메일 오발송 사고',text:'A사에 보내야 할 견적서를… B사에 보냈다. 그 안에는 A사 전용 할인 단가가 다 들어 있다. 전송 취소 시간은 이미 지났다.',ch:[
+  {t:'바로 부장에게 보고하고 수습한다',fn:()=>P(.45)?{r:'B사 담당자에게 전화해 정중히 삭제를 부탁했다. 다행히 괜찮다고 했다. 부장: "빨리 보고해서 다행이야. 다음부턴 조심해."',fx:{boss:-2,mental:-5,skill:1}}:{scold:1,sisal:{why:'거래처 견적 메일 오발송',intro:'"이게 얼마나 큰 사고인지 알아? 단가가 다 털렸어! 경위 자세히 적어서 시말서 제출해."',fx:{boss:-5,mental:-6}}}},
+  {t:'조용히 묻어둔다…',fn:()=>P(.35)?{r:'B사가 메일을 안 읽은 것 같다. 아무 일도 없었다. 심장은 일주일 내내 쿵쿵거렸다.',fx:{mental:-8}}:{scold:1,sisal:{why:'거래처 견적 메일 오발송 및 보고 누락',intro:'B사가 "A사엔 이 가격에 주셨던데요?"라며 전화를 걸어왔다. 부장 얼굴이 시뻘개졌다.\n"사고 친 것도 문제인데 보고를 안 해?! 시말서 써!"',fx:{boss:-10,mental:-8}}}}]},
+ {id:'hoesikslip',w:1.2,cool:12,cond:()=>S.stats.drink>=1,who:'🍶',name:'회식 다음 날',title:'기억이 없다',text:'어제 회식 3차 이후 기억이 없다. 출근하니 동기가 속삭인다.\n"너 어제 부장님한테 \'부장님 그 넥타이 진짜 최악이에요\'라고 했어…"',ch:[
+  {t:'먼저 부장을 찾아가 사과한다',fn:()=>P(.4)?{r:'"허허, 술자리에서 한 말인데 뭘. 근데 넥타이는 진짜 별로야?" 웃으며 넘어갔다.',fx:{boss:-2,mental:-4}}:{scold:1,sisal:{why:'회식 자리 품위 손상 발언',intro:'"사과는 됐고, 회사 생활엔 지켜야 할 선이 있어. 시말서로 정리해서 가져와."',fx:{boss:-4,mental:-5}}}},
+  {t:'"기억이 안 납니다" 모르쇠',fn:()=>({scold:1,sisal:{why:'회식 자리 품위 손상 발언',intro:'"기억이 안 나? 15명이 다 들었는데? …시말서 써. 기억나는 데까지만."',fx:{boss:-8,mental:-5}}})}]},
+ {id:'printer',w:2,who:'🖨️',name:'복합기',title:'억까: 복합기 고장',text:'내가 출력 버튼을 누르자 복합기가 "끼이익" 하고 멈췄다. 뒤에서 부장이 다가온다.\n"또 뭘 만졌어?"',ch:[
+  {t:'직접 고쳐본다',fn:()=>P(.5+S.skill/200)?{r:'걸린 A4 한 장을 빼내자 복합기가 부활했다. 사무실에서 박수가 나왔다.',fx:{peers:5,mental:4}}:{r:'토너가 와르르. 셔츠가 검게 물들었다. 부장: "그러게 왜 만져."',fx:{mental:-7,money:-50000},scold:1}},
+  {t:'"제가 안 그랬는데요…"',fx:{mental:-3,boss:-2},r:'아무도 안 믿는다. 오늘부로 복합기 담당이 됐다.'}]},
+ {id:'hiking',w:1.5,who:'⛰️',name:'김부장',title:'주말 단합 등산',text:'"이번 토요일 아침 7시, 관악산 입구 집합! 단합 등산이야. 자율 참석이지만… 알지?"',ch:[
+  {t:'간다. 정상에서 부장 사진 찍어주기',fx:{boss:7,hp:-8,mental:-6,peers:2},r:'정상에서 부장 독사진만 47장 찍었다. 하산 후 막걸리까지. 주말 끝.'},
+  {t:'"부모님 댁에 가야 해서요…"',fx:{boss:-5,mental:5,hp:4},r:'월요일, 부장이 "부모님은 잘 계시고?" 하며 웃었다. 다 아는 눈치다.'}]},
+ {id:'handover',w:1.5,who:'🧑‍💼',name:'옆자리 동료',title:'동료의 퇴사',text:'"나 다음 주까지만 나와. 이직했어. 미안한데 내 업무 네가 받게 될 것 같아…"\n인수인계 문서는 A4 반 장이다.',ch:[
+  {t:'축하해주고 업무를 떠안는다',fx:{perf:4,hp:-6,mental:-8,peers:4},r:'두 사람 몫을 한다. 충원 계획은 "검토 중"이다. 1년째.'},
+  {t:'이직 비결을 캐묻는다',fx:{jobHunt:1,mental:2,peers:2},r:'"헤드헌터 사이트에 이력서 올려둬. 나 연봉 20% 올렸어." 마음이 흔들린다.'}]},
+ {id:'junior',w:2,cond:()=>S.rank>=1,who:'🧑‍🎓',name:'신입 최사원',title:'후배의 대형 사고',text:'신입이 "전체 회신"으로 팀장 욕을 보냈다. 원래는 동기한테 보내려던 거라고. 하얗게 질려서 나를 쳐다본다.',ch:[
+  {t:'같이 부장한테 가서 수습해준다',fx:{peers:8,boss:-3,mental:-4},r:'"제가 교육을 잘못 시켰습니다." 같이 고개를 숙였다. 최사원은 나를 평생 은인으로 모시겠다고 했다.'},
+  {t:'IT팀에 메일 회수를 요청한다',fn:()=>P(.4+S.skill/200)?{r:'메일이 열리기 전에 회수됐다! 최사원이 울었다.',fx:{peers:10,skill:2}}:{r:'회수 실패. 이미 18명이 읽음. 최사원은 다음 달 다른 팀으로 갔다.',fx:{peers:2,mental:-3}}},
+  {t:'모른 척한다',fx:{peers:-6},r:'괜히 엮이면 나까지 다친다. …근데 좀 씁쓸하다.'}]},
+ {id:'praise',w:1.5,cond:()=>S.skill>=50,who:'👩‍💼',name:'정이사',title:'의외의 칭찬',text:'엘리베이터에서 정이사를 만났다. "지난번 그 분석 자료, 자네가 만들었다면서? 잘했더구먼."',ch:[{t:'"감사합니다! 더 열심히 하겠습니다"',fx:{boss:6,mental:10,perf:3},r:'오늘 하루는 회사가 좀 다니고 싶은 곳 같았다.'}]},
+ {id:'bonus',w:1,cool:10,cond:()=>!C().black,who:'💰',name:'인사팀 공지',title:'특별 성과급 지급!',text:'"올해 실적 호조에 따라 전 직원에게 특별 성과급을 지급합니다." 사무실에 환호성이!',ch:[{t:'통장 확인!',fn:()=>{const amt=Math.round(S.salary*10000*.06*C().bonus*(.6+Math.random()*.8)/10000)*10000;S.stats.bonus+=amt;S.stats.earned+=amt;return{r:`특별 성과급 ${won(amt)} 입금! 오늘 저녁은 치킨이다.`,fx:{money:amt,mental:12}};}}]},
+ {id:'layoff',w:1,cool:36,cond:()=>S.companyMonths>=36&&!C().safe&&S.rank<=4,who:'📉',name:'인사팀',title:'억까: 희망퇴직 면담',text:'회사 실적이 나빠져 "희망퇴직"을 받는다고 한다. 인사팀이 나를 면담에 불렀다. 위로금은 연봉 1년 치.\n…왜 하필 나지?',ch:[
+  {t:'위로금 받고 나간다 (재취업 도전)',fn:()=>unempRes('희망퇴직',S.salary*10000,{ui:true})},
+  {t:'"남겠습니다." 버틴다',fn:()=>(S.boss<35&&P(.5))?unempRes('정리해고 (억까)',S.salary*10000/4,{ui:true}):{r:'버텼다. 대신 창문 없는 자리로 옮겨졌고 업무가 절반으로 줄었다. 눈치가 보인다.',fx:{mental:-15,perf:-5}}}]},
+ {id:'startupfate',w:2,cool:12,cond:()=>C().startup&&S.companyMonths>=12,who:'🚀',name:'대표 (CEO)',title:'전 직원 긴급 타운홀',text:'"여러분, 중요한 발표가 있습니다…" 대표 얼굴이 묘하다. 웃는 건지 우는 건지 모르겠다.',ch:[{t:'숨죽이고 듣는다',fn:()=>{const r=Math.random();
+  if(r<.18)return unempRes('회사 폐업 (스톡옵션은 휴지 조각)',0,{ui:true});
+  if(r<.32){const amt=S.salary*10000*4;S.cid='big';return{r:`회사가 거대전자에 인수됐다!! 스톡옵션 현금화로 ${won(amt)}이 들어왔다. 그리고 오늘부터 나는… 대기업 직원이다.`,fx:{money:amt,mental:20}};}
+  if(r<.7)return{r:'시리즈 B 투자 유치 성공! 연봉 10% 일괄 인상 + 피자 파티!',fx:{mental:12},raise:10};
+  return{r:'투자 유치 실패… 전 직원 연봉 10% 삭감, "고통 분담"이란다. 대표 차는 그대로 포르쉐다. (억까)',fx:{mental:-15},raise:-10};}}]},
+ {id:'passion',w:2.5,cond:()=>C().black,who:'👴',name:'사장님',title:'부조리: 우리는 가족이야',text:'"우리 회사는 가족 같은 회사야. 가족끼리 수당 따지고 그러나? 이번 주 토요일도 나와서 재고 정리 좀 하자고."',ch:[
+  {t:'"네… 가족이니까요"',fx:{boss:5,hp:-8,mental:-10},r:'토요일 내내 창고에서 박스를 날랐다. 점심은 사장님이 사준 짜장면. 가족 맞네(?)'},
+  {t:'노동청에 진정을 넣는다',fn:()=>P(.5)?{r:'근로감독관이 다녀갔다! 밀린 수당 일부가 들어왔다. 사장님은 나랑 눈을 안 마주친다.',fx:{money:800000,boss:-20,mental:10}}:{r:'"증거가 부족합니다." 그리고 사장님이 진정 넣은 사람이 누군지 알게 됐다.',fx:{boss:-25,mental:-10}}},
+  {t:'"가족이면 월급 좀 올려주세요"',fx:{boss:-8,mental:6},r:'사장님이 "허허 이 친구 농담도…" 하고 자리를 떴다. 농담 아닌데.'}]},
+ {id:'lunch',w:2,who:'🍜',name:'김부장',title:'점심 뭐 먹지',text:'"오늘 점심 뭐 먹을까? 난 아무거나 괜찮아~"',ch:[
+  {t:'"짜장면 어떠세요?"',fx:{boss:-2,mental:-2},r:'"어제 먹었잖아." 결국 부장이 원래 가고 싶던 국밥집에 갔다.'},
+  {t:'"부장님 좋아하시는 국밥 가시죠!"',fx:{boss:3},r:'"오 역시 뭘 좀 아네!" 이번 달 국밥 11번째다.'},
+  {t:'"저는 오늘 도시락이라…" 혼밥',fx:{mental:5,peers:-2,boss:-1},r:'1시간의 자유. 유튜브 보면서 먹는 도시락이 제일 맛있다.'}]},
+ {id:'meeting',w:2,who:'🗓️',name:'캘린더 알림',title:'회의를 위한 회의',text:'오늘 일정:\n09:00 주간회의 준비회의\n10:00 주간회의\n11:00 주간회의 결과 공유회의\n14:00 회의 효율화 TF 회의',ch:[
+  {t:'다 참석해서 열심히 받아 적는다',fx:{hp:-3,mental:-6,boss:2},r:'회의만 하다 하루가 끝났다. 진짜 일은 6시부터 시작이다.'},
+  {t:'회의 중에 몰래 내 일을 한다',fn:()=>P(.6)?{r:'회의록 쓰는 척하며 보고서를 끝냈다. 멀티태스킹의 신.',fx:{perf:3,mental:-1}}:{r:'"○○씨, 방금 내가 뭐라고 했지?" …걸렸다.',fx:{boss:-6,mental:-5},scold:1}}]},
+ {id:'client',w:1.5,who:'🤬',name:'거래처 갑 부장',title:'갑질 거래처',text:'"아니 이걸 견적이라고 가져왔어요? 당신네 아니어도 할 데 많아요. 내일까지 20% 깎아서 다시 와요." 뚝.',ch:[
+  {t:'밤새 다시 만든다',fx:{perf:4,hp:-6,mental:-7},r:'15% 깎은 버전과 논리를 만들어 갔다. 갑 부장이 "음…" 했다. 이 정도면 승리다.'},
+  {t:'우리 부장에게 보고하고 같이 대응',fx:{boss:2,mental:-3,skill:2},r:'부장이 전화 한 통으로 정리했다. 짬은 무시 못 한다.'}]},
+ {id:'headhunter',w:3.5,cool:4,cond:()=>S.jobHunt>=3,any:true,who:'📞',name:'헤드헌터',title:'스카우트 제안 도착!',text:()=>`"${S.name}님 이력 보고 연락드렸어요. ${pickTarget().name}에서 연봉 ${man(Math.round(S.salary*1.22))}에 모시고 싶다고 합니다."\n지금 연봉의 122%다.`,ch:[
+  {t:'오퍼 수락! 이직한다',fn:()=>({sw:true})},
+  {t:'오퍼 레터를 연봉협상 카드로 챙겨둔다',fx:{mental:3},r:'오퍼 레터를 저장했다. 연봉협상 때 꺼낼 것이다.',flag:'offer'},
+  {t:'아직은 남는다',fx:{mental:3,jobHunt:-1},r:'"언제든 연락 주세요." 명함을 지갑에 넣었다.'}]},
+ {id:'newboss',w:1,cool:24,cond:()=>S.companyMonths>=12,who:'🔄',name:'인사 발령',title:'팀장이 바뀌었다',text:'김부장이 다른 본부로 발령났다! 새로 오는 팀장은…',ch:[{t:'두근두근',fn:()=>P(.5)?{r:'칼퇴하고 칭찬 잘하는 합리적인 팀장님이다. 이게 꿈인가?',fx:{boss:15,mental:15},flagSet:['goodBoss',true]}:{r:'…김부장보다 더한 사람이 왔다. "나 때는 말이야"를 하루 12번 한다. 김부장이 그리워질 줄이야.',fx:{boss:-10,mental:-12},flagSet:['goodBoss',false]}}]},
+ {id:'talent',w:1.2,cool:120,cond:()=>S.rank<=1,who:'🎤',name:'인사팀',title:'워크숍 장기자랑',text:'"워크숍 마지막 날 밤, 저연차 장기자랑이 있습니다! 1등은 상품권 30만 원!"\n(자율이라는데 명단에 이미 내 이름이 있다)',ch:[
+  {t:'아이돌 댄스 풀커버로 간다',fn:()=>P(.4)?{r:'1등! 사장님이 "저 친구 누구야?" 했다. 상품권 30만 원 획득. 하지만 영상이 사내에 영원히 박제됐다.',fx:{money:300000,boss:6,peers:6,mental:-3}}:{r:'박자를 놓쳤다. 정적. 누가 "화이팅~" 했다. 그게 더 아팠다.',fx:{mental:-10,peers:3}}},
+  {t:'단체 콩트로 묻어간다',fx:{peers:4,mental:-2},r:'나무 역할을 맡았다. 아무도 기억 못 한다. 완벽하다.'}]},
+ {id:'ceo',w:1,who:'👑',name:'사장님',title:'사장님 순시',text:'사장님이 사무실을 돌다가 내 자리 앞에서 멈췄다. "자네, 요즘 회사 생활 어때? 솔직하게 말해봐."',ch:[
+  {t:'"너무 좋습니다! 보람 있습니다!"',fx:{boss:3,mental:-2},r:'"그래그래, 젊은 사람이 열정이 있어야지." 사장님이 만족스럽게 지나갔다.'},
+  {t:'진짜 솔직하게 말한다 (야근, 회의…)',fn:()=>P(.3)?{r:'사장님이 메모를 했다. 다음 달 "회의 줄이기 캠페인"이 시작됐다! (회의가 하나 늘었다)',fx:{mental:8,perf:3}}:{r:'사장님 표정이 굳었다. 오후에 부장이 불렀다. "자네 사장님한테 무슨 말을 한 거야?"',fx:{boss:-12,mental:-5},scold:1}}]},
+ {id:'coin',w:1.2,cool:8,any:true,who:'📈',name:'옆자리 동기',title:'야 이거 무조건 오른대',text:'"야, 이 코인 무조건 간대. 우리 팀 과장님도 넣었어. 너도 한 300만 넣어봐."',ch:[
+  {t:'300만 원 넣는다',fn:()=>{const r=Math.random();if(r<.3)return{r:'떡상! 3배가 됐다!! 하지만 그 뒤로 업무 중에 차트만 본다.',fx:{money:6000000,mental:8,perf:-3}};if(r<.6)return{r:'반 토막. 차트를 볼 때마다 위가 쓰리다.',fx:{money:-1500000,mental:-8}};return{r:'상장폐지. 300만 원이 사라졌다. 동기는 "나도 물렸어ㅋ"라며 웃었다.',fx:{money:-3000000,mental:-12}};}},
+  {t:'"난 적금이 좋아"',fx:{mental:1},r:'한 달 뒤 동기 표정을 보니 잘한 선택 같다.'}]},
+ {id:'checkup',w:2,cool:10,any:true,cond:()=>S.hp<45,who:'🏥',name:'건강검진 결과',title:'재검 소견',text:'건강검진 결과지: 위염, 거북목, 지방간 의심, 안구건조증.\n"스트레스 관리가 필요합니다."',ch:[
+  {t:'운동 시작 (헬스 3개월 등록)',fx:{money:-300000,hp:12,mental:3},r:'첫 주는 열심히 갔다. 둘째 주부터는… 헬스장 기부천사가 됐다.'},
+  {t:'어차피 다들 이렇게 살아',fx:{hp:-3,mental:-3},r:'결과지를 서랍에 넣었다. 커피를 한 잔 더 마셨다.'}]},
+ {id:'wedding',w:1.5,cool:6,who:'💌',name:'청첩장',title:'부장님 따님 결혼식',text:'부장 딸 결혼식 청첩장이 책상에 놓였다. 일요일 낮 12시, 강남. 축의금은… 얼마 해야 하지?',ch:[
+  {t:'5만 원 (기본)',fx:{money:-50000},r:'식권으로 뷔페 먹으면 본전인가…'},
+  {t:'10만 원 + 직접 참석',fx:{money:-100000,boss:4,mental:-3},r:'부장이 하객석에서 나를 발견하고 활짝 웃었다. 일요일은 사라졌다.'},
+  {t:'안 가고 3만 원 계좌이체',fx:{money:-30000,boss:-3},r:'"3만 원…?" 축의금 장부를 부장 사모님이 직접 정리했다는 소문이 있다.'}]},
+ {id:'mz',w:1.5,cond:()=>S.rank>=2,who:'🎧',name:'신입 사원',title:'나도 꼰대인가?',text:'신입이 에어팟 끼고 일하다 5시 59분에 가방을 쌌다. "내일 뵙겠습니다~"\n팀 업무는 아직 산더미인데.',ch:[
+  {t:'"조금만 더 하고 가자" 붙잡는다',fx:{perf:2,peers:-5},r:'다음 날 익명 게시판에 "꼰대 선배" 글이 올라왔다… 나도 꼰대가 된 건가.'},
+  {t:'"수고했어~" 보내주고 내가 한다',fx:{hp:-5,mental:-3,peers:4},r:'신입은 고마워했다. 나는 9시까지 남았다. 이게 맞나?'},
+  {t:'나도 같이 칼퇴한다',fx:{mental:6,boss:-4},r:'둘이 같이 엘리베이터를 탔다. 묘한 연대감이 생겼다.'}]},
+ {id:'harass',w:1.5,cond:()=>S.boss<40,who:'💢',name:'김부장',title:'공개 망신',text:'회의 중에 부장이 내 보고서를 집어 던졌다. "이걸 보고서라고 써 왔어? 대학은 나왔어?"\n15명이 보고 있다.',ch:[
+  {t:'고개 숙이고 참는다',fx:{mental:-14},r:'화장실에서 10분 동안 심호흡을 했다. 손이 떨린다.',scold:1},
+  {t:'녹음해서 직장 내 괴롭힘으로 신고',fn:()=>P(.5)?{r:'괴롭힘이 인정됐다. 부장은 징계와 함께 다른 팀으로 갔다! 동료들이 몰래 엄지척을 날린다.',fx:{mental:10,peers:8,boss:30},flagSet:['goodBoss',true]}:{r:'"양측 진술이 엇갈려 판단이 어렵다." 흐지부지. 부장과 나는 같은 팀에 그대로 있다.',fx:{mental:-10,boss:-10}}},
+  {t:'"그렇게 말씀하시는 건 부적절합니다"',fx:{mental:4,boss:-10,peers:6},r:'사무실이 얼어붙었다. 부장은 말을 잇지 못했다. 회의 후 동료들이 커피를 사줬다.'}]},
+ {id:'rotation',w:2,cool:24,cond:()=>C().safe&&S.companyMonths>=18,who:'🔄',name:'인사 발령',title:'순환보직',text:'이제 막 업무에 익숙해졌는데 순환보직으로 전혀 다른 부서(시설관리팀)로 발령이 났다.',ch:[{t:'받아들인다',fx:{skill:-6,mental:-5,peers:3},r:'처음부터 다시 배운다. 보일러 점검표가 내 새 친구다.'}]},
+ {id:'mentor',w:1.5,cool:999,cond:()=>S.careerMonths<=24,who:'🧑‍🏫',name:'사수 이대리',title:'사수의 꿀팁',text:'"야, 보고서는 결론부터 써. 부장님은 첫 장만 봐. 그리고 금요일 오후엔 절대 보고 올리지 마."',ch:[{t:'메모한다',fx:{skill:4,peers:3},r:'인생 꿀팁 노트 1페이지 완성.'}]},
+ {id:'crash',w:1.5,who:'💻',name:'회사 PC',title:'억까: 블루스크린',text:'보고서 마감 30분 전. 윈도우 업데이트가 강제로 시작되더니… 파란 화면. 마지막 저장은 3시간 전.',ch:[
+  {t:'처음부터 다시 쓴다 (야근 확정)',fx:{hp:-6,mental:-8,perf:2},r:'두 번째 버전이 더 잘 나왔다. 그래서 더 억울하다.'},
+  {t:'솔직히 말하고 마감 연장을 요청한다',fn:()=>(S.flags.goodBoss||P(.4))?{r:'"그럴 수 있지, 내일 오전까지 줘." 휴.',fx:{mental:-2}}:{r:'"그걸 왜 저장을 안 해? 기본이 안 돼 있어!"',fx:{boss:-6,mental:-6},scold:1}}]},
+ {id:'salarytalk',w:1.2,cool:60,who:'🤫',name:'동기 단톡방',title:'억까: 연봉 공개 사건',text:'동기 하나가 술김에 연봉을 깠다. 같은 해 입사, 같은 직급… 근데 나보다 400만 원 더 받는다. 이유는 "협상을 잘해서"라고.',ch:[
+  {t:'인사팀에 따진다',fn:()=>P(.25)?{r:'인사팀이 "검토해보겠다"더니 진짜로 조정해줬다! 연봉 3% 인상.',fx:{mental:5},raise:3}:{r:'"개인 연봉은 비밀유지 대상입니다. 누가 알려줬죠?" 오히려 동기가 곤란해졌다.',fx:{mental:-8,peers:-4}}},
+  {t:'다음 연봉협상 때 두고 보자…',fx:{mental:-6,skill:1},r:'이를 갈며 협상 전략을 공부했다.'}]},
+ {id:'abroad',w:1,cool:120,cond:()=>S.rank>=2&&S.rank<=3&&!C().black&&!C().startup,who:'✈️',name:'해외사업팀',title:'해외 주재원 기회',text:'"베트남 법인 주재원 자리가 났는데, 자네 생각 있나? 3년 코스야. 해외수당 나오고, 다녀오면 승진에 유리하지."',ch:[
+  {t:'간다! 글로벌 커리어',fx:{skill:10,money:15000000,peers:-5,hp:-6,perf:10},r:'짐을 쌌다. 3년 동안 쌀국수와 엑셀과 함께였다. 해외수당이 꽤 쌓였고, 이력서 한 줄이 강력해졌다.',flagSet:['promoBoost',true]},
+  {t:'가족·생활 때문에 사양한다',fx:{mental:2},r:'"그래, 다음 기회에." 그 자리는 박과장이 갔다.'}]},
+ {id:'bigproj',w:1.5,cool:18,cond:()=>S.rank>=2&&S.rank<=4,who:'🧑‍💼',name:'본부장',title:'대형 프로젝트 PM 제안',text:'"이번 차세대 시스템 프로젝트, 자네가 PM 맡아봐. 성공하면 확실히 밀어줄게. 실패하면… 알지?"',ch:[
+  {t:'맡는다. 승부수다',fn:()=>P(.4+S.skill/250)?{r:'6개월 지옥 끝에 프로젝트 성공! 본부장이 전 직원 앞에서 내 이름을 불렀다.',fx:{perf:20,boss:12,skill:5,hp:-10,mental:-5}}:{r:'일정 지연, 예산 초과, 오픈 첫날 서버 다운. 책임은 PM인 나에게 왔다.',fx:{perf:-5,boss:-12,hp:-10,mental:-12}}},
+  {t:'정중히 사양한다',fx:{boss:-3},r:'"그래? 아쉽네." 본부장 표정에 실망이 스쳤다.'}]},
+ {id:'reunion',w:1,cool:24,any:true,who:'🍺',name:'동창회',title:'동창회 연봉 배틀',text:()=>`오랜만의 대학 동창회. 다들 은근히 연봉 얘기를 꺼낸다. "너 요즘 얼마 받냐?"\n(내 연봉: ${man(S.salary||0)})`,ch:[
+  {t:'솔직하게 말한다',fn:()=>S.salary>=6000?{r:'"와… 성공했네?" 부러운 시선이 쏟아졌다. 2차는 내가 샀다.',fx:{mental:8,money:-200000}}:{r:'"아… 그래도 안정적이잖아~" 위로가 더 아팠다.',fx:{mental:-6}}},
+  {t:'"그냥 먹고 살 만해~" 얼버무린다',fx:{mental:1},r:'다들 똑같이 얼버무렸다. 직장인의 국룰이다.'}]},
+ /* ---- 생애 이벤트 ---- */
+ {id:'marry',w:1.5,cool:18,any:true,cond:()=>!S.life.married&&S.age>=29&&S.age<=40,who:'💍',name:'연인',title:'결혼 이야기',text:'오래 만난 연인이 조심스럽게 말했다. "우리… 이제 결혼할까?"\n결혼식·신혼 준비에 목돈이 들 거다.',ch:[
+  {t:'결혼한다! (맞벌이)',fx:{money:-25000000,mental:15},r:'결혼식은 정신없었지만 행복했다. 둘이 같이 벌고, 같이 쓴다. 매달 배우자 월급이 가계에 더해진다.',life:{married:true,dual:true}},
+  {t:'결혼한다! (외벌이)',fx:{money:-25000000,mental:15},r:'결혼식은 정신없었지만 행복했다. 이제 가장이다. 어깨가 무겁다.',life:{married:true}},
+  {t:'아직은… 조금만 더',fx:{mental:-5},r:'"…그래, 알았어." 분위기가 좀 가라앉았다.'}]},
+ {id:'baby',w:1.2,cool:24,any:true,cond:()=>S.life.married&&S.life.kids<2&&S.age<=44,who:'👶',name:'가족',title:'아기가 생겼다!',text:'배우자가 두 줄 테스트기를 보여줬다. 아기가 생겼다!',ch:[
+  {t:'육아휴직을 쓴다 (3개월)',fx:{mental:15,boss:-10,hp:5,money:-4000000},r:'회사 눈치는 보였지만 아이와 보낸 3개월은 평생 기억에 남을 거다. 복귀하니 내 자리에 다른 사람 짐이 있었다.',life:{kids:1}},
+  {t:'일에 집중한다',fx:{mental:6,hp:-6},r:'퇴근하면 육아 2교대가 시작된다. 피곤하지만 아이가 웃으면 다 괜찮다.',life:{kids:1}}]},
+ {id:'house',w:1.5,cool:12,any:true,cond:()=>!S.life.house&&S.money>=120000000,who:'🏠',name:'공인중개사',title:'내 집 마련의 기회',text:()=>{S.flags.hp=Math.min(R(3,9)*100000000,Math.floor(S.money*.9/.35/10000000)*10000000);return `"이 아파트 ${eok(S.flags.hp)}인데요, 지금 안 사면 또 오릅니다~"\n모아둔 돈이 ${won(S.money)} 있다. 계약금·중도금으로 35%를 내고, 나머지 65%는 주택담보대출(금리 4.5%, 30년)로 해야 한다.`;},ch:[
+  {t:'영끌해서 산다!',fn:()=>{const price=S.flags.hp;const down=Math.round(price*.35);const loan=price-down;S.life.house=true;S.life.houseVal=price;S.life.loan=loan;S.life.loanPay=Math.round((loan*.045/12/(1-Math.pow(1+.045/12,-360)))/1000)*1000;return{r:`계약했다! 등기부등본에 내 이름이 찍혔다. 대출 ${eok(loan)}, 매달 원리금 ${won(S.life.loanPay)}. 이제 월세는 끝이다.`,fx:{money:-down,mental:12}};}},
+  {t:'아직은 월세로 버틴다',fx:{mental:-2},r:'"나중에 후회하실 텐데~" 중개사의 마지막 말이 귀에 맴돈다.'}]},
+ {id:'car',w:1,cool:60,any:true,cond:()=>S.life.car<=0&&S.money>=20000000,who:'🚗',name:'자동차 딜러',title:'차 한 대 뽑을까?',text:'출퇴근 지하철에 지쳤다. 딜러가 신차 카탈로그를 내민다. "60개월 할부도 됩니다~"',ch:[
+  {t:'일시불로 산다 (3천만 원)',fx:{money:-30000000,mental:10},r:'새 차 냄새. 출근길이 조금은 즐거워졌다.'},
+  {t:'60개월 할부로 산다',fx:{mental:10},r:'월 50만 원 할부 인생 시작. 그래도 차는 좋다.',life:{car:60}},
+  {t:'지하철이 최고다',fx:{mental:-1},r:'오늘도 2호선에 몸을 맡긴다.'}]},
+ /* ---- 임원 이벤트 ---- */
+ {id:'board',w:2,exec:true,who:'🏛️',name:'이사회',title:'분기 이사회 보고',text:'이사회에 분기 실적을 보고해야 한다. 숫자가… 좀 애매하다.',ch:[
+  {t:'숫자를 예쁘게 포장한다',fx:{rate:5,boss:4,mental:-4},r:'"일회성 비용 제외 시" 같은 각주를 잔뜩 달았다. 이사회는 만족했다.',corrupt:1},
+  {t:'있는 그대로 보고한다',fn:()=>P(.5)?{r:'"솔직해서 좋군요." 사외이사들이 신뢰를 보냈다.',fx:{boss:6,mental:4}}:{r:'"그래서 대책이 뭡니까?" 이사회 분위기가 싸늘했다.',fx:{boss:-6,mental:-6}}}]},
+ {id:'union',w:3,exec:true,cond:()=>(S.flags.cuts||0)>=2,who:'✊',name:'노동조합',title:'노조 파업 예고',text:'계속된 구조조정에 노조가 파업을 예고했다. 공장 라인이 멈추면 실적에 큰 타격이다.',after:()=>{S.flags.cuts=0;},ch:[
+  {t:'직접 대화에 나선다',fx:{rate:-4,peers:12,mental:-4},r:'밤샘 협상 끝에 합의했다. 실적은 좀 깎였지만 조직이 다시 숨을 쉰다.'},
+  {t:'강경 대응한다',fx:{rate:-2,boss:6,peers:-15,mental:-10},r:'파업은 3주 만에 끝났다. 회장님은 "단호해서 좋다"고 했다. 직원들은 나를 피한다.'}]},
+ {id:'heir',w:1.5,exec:true,cool:36,who:'🤴',name:'회장 아들',title:'억까: 3세 경영 승계',text:'회장님 아들(34세)이 해외 MBA를 마치고 돌아와 내 위 직급으로 바로 꽂혔다. 첫 회의에서 "숫자가 왜 이래요?"라고 한다.',ch:[
+  {t:'충실히 보좌한다',fx:{boss:8,mental:-10},r:'3세의 실수를 조용히 수습해주고 공은 그에게 돌렸다. 회장님이 흡족해한다.'},
+  {t:'은근히 견제한다',fn:()=>P(.35)?{r:'3세가 무리한 신사업으로 사고를 쳤고, 수습한 내가 주목받았다.',fx:{boss:10,rate:5}}:{r:'회장님 귀에 들어갔다. "자네, 우리 아들을 무시하나?"',fx:{boss:-18,mental:-8}}}]},
+ {id:'prosecutor',w:3,exec:true,cond:()=>S.corruption>=2,who:'⚖️',name:'검찰',title:'압수수색',text:'아침 8시, 검찰 수사관들이 본사에 들이닥쳤다. 회계 부정·비자금 의혹. 내 결재 서류가 박스에 담겨 나간다.',ch:[
+  {t:'수사에 적극 협조한다',fn:()=>P(.5)?{r:'협조 덕에 기소유예로 끝났다. 대신 회장님과의 관계는 끝났다.',fx:{boss:-30,mental:-15},reset:true}:{end:'jail'}},
+  {t:'회장님을 지킨다 (침묵)',fn:()=>P(.45)?{r:'끝까지 입을 다물었다. 수사는 흐지부지 끝났고, 회장님이 내 손을 잡았다. "자네 같은 사람이 필요해."',fx:{boss:25,mental:-15},reset:true}:{end:'jail'}}]},
+ {id:'scandal',w:1.2,exec:true,cool:24,who:'📰',name:'언론',title:'갑질 녹취 논란',text:'"○○그룹 임원 갑질 녹취 공개" 기사가 떴다. 3년 전 회의에서 화냈던 녹음 파일이다. 맥락이 많이 잘렸지만…',ch:[
+  {t:'공개 사과한다',fx:{boss:-5,peers:6,mental:-10},r:'고개를 숙였다. 여론은 잠잠해졌지만 상처는 남았다.'},
+  {t:'"맥락이 잘렸다" 해명한다',fn:()=>P(.4)?{r:'전체 녹취가 공개되자 여론이 돌아섰다. 오히려 "할 말은 하는 임원"이 됐다.',fx:{boss:5,mental:2}}:{r:'해명이 변명으로 비쳤다. 기사가 두 배로 늘었다.',fx:{boss:-14,mental:-12}}}]},
+ {id:'poach',w:1.5,exec:true,cool:24,cond:()=>S.jobHunt>=2,who:'🦅',name:'경쟁사 회장',title:'경쟁사의 러브콜',text:()=>`"우리 회사로 오시죠. ${RANKS[Math.min(8,S.rank+1)]} 자리, 연봉 ${man(Math.round(S.salary*1.3))} 드리겠습니다."`,ch:[
+  {t:'자리를 옮긴다',fn:()=>({sw:true,up:true})},{t:'지금 회사에 남는다',fx:{boss:4,mental:2},r:'거절 사실이 회장님 귀에 들어갔다. "의리 있구먼."'}]},
+ {id:'ma',w:1.2,exec:true,cool:18,who:'🤝',name:'투자은행',title:'M&A 기회',text:'경쟁 중소기업을 인수할 기회가 왔다. 성공하면 시장 점유율이 크게 오르지만, 실패하면 큰 손실이다.',ch:[
+  {t:'인수를 추진한다',fn:()=>P(.5)?{r:'인수 성공! 시너지가 바로 나타났다. 경제지 1면에 내 사진이 실렸다.',fx:{rate:18,boss:10,mental:8}}:{r:'인수 후 통합에 실패했다. 손실이 눈덩이처럼 불었다.',fx:{rate:-15,boss:-10,mental:-10}}},
+  {t:'보류한다',fx:{mental:2},r:'신중한 결정이었다. 6개월 뒤 그 회사는 경쟁사가 가져갔다.'}]},
+ {id:'errand',w:1.5,exec:true,who:'👴',name:'회장님',title:'부조리: 회장님의 사적 부탁',text:'"내 손자 국제학교 입학 건 말이야, 회사 이름으로 기부금 좀 처리해줘. 5억이면 될 거야."',ch:[
+  {t:'처리한다',fx:{boss:10,mental:-8},r:'회계팀에 "사회공헌 기부금"으로 처리하라고 지시했다. 회장님이 흡족해한다.',corrupt:1},
+  {t:'정중히 거절한다',fx:{boss:-12,mental:4},r:'"…자네도 변했구먼." 회장실 공기가 차가워졌다.'}]},
+];
+function pickTarget(){if(!S.flags.ttarget||S.flags.ttarget===S.cid){const pool=COMPANIES.filter(c=>c.id!==S.cid&&!c.black);S.flags.ttarget=pick(pool).id;}return COMPANIES.find(c=>c.id===S.flags.ttarget);}
+function pickEvent(){const ex=isExec();const pool=EVENTS.filter(e=>(ex?(e.exec||e.any):!e.exec)&&(!e.cond||e.cond())&&!((S.cool[e.id]||0)>S.careerMonths));
+ if(!pool.length)return null;let tot=pool.reduce((a,e)=>a+(e.w||1),0),r=Math.random()*tot;for(const e of pool){r-=(e.w||1);if(r<=0)return e;}return pool[pool.length-1];}
+function runEvent(ev,next,isFixed){if(!isFixed)S.cool[ev.id]=S.careerMonths+(ev.cool||3);
+ const text=typeof ev.text==='function'?ev.text():ev.text;const chs=ev.ch.filter(c=>!c.cond||c.cond());
+ screen(()=>hud()+sceneCard(ev.who,ev.name,ev.title,text,chs.map(c=>`<button onclick="${b(()=>choose(ev,c,next))}">${c.t}</button>`).join(''))+logBox());}
+function choose(ev,c,next){const res=c.fn?c.fn():{r:c.r,fx:c.fx};
+ if(c.corrupt)S.corruption+=c.corrupt;if(c.flag)S.flags[c.flag]=true;if(c.line){S.line=c.line==='none'?null:c.line;S.flags.lineYear=S.cal;}
+ if(c.life)Object.keys(c.life).forEach(k=>{if(k==='kids')S.life.kids+=c.life.kids;else S.life[k]=c.life[k];});
+ if(c.scold||res.scold)S.stats.scold++;if(res.flagSet)S.flags[res.flagSet[0]]=res.flagSet[1];if(res.reset)S.corruption=0;
+ if(ev.after)ev.after();
+ if(res.end)return ending(res.end);
+ if(res.unemp){if(res.fx)apply(res.fx);return unemploy(res.unemp.reason,res.unemp.extra,res.unemp.opt);}
+ if(res.sw)return switchCompany(res.up,next);
+ if(res.sisal){apply(res.sisal.fx);log('📝 시말서 지시: '+res.sisal.why);return sisal(res.sisal.why,res.sisal.intro,next);}
+ const ch=apply(res.fx);if(res.raise){S.salary=Math.round(S.salary*(1+res.raise/100));ch.push(['salary',res.raise]);}
+ log(ev.title);showResult(ev.title,res.r,ch,()=>guard(next),'다음 ▶',ev.who);}
+function switchCompany(up,next){const t=pickTarget();const old=C();const sev=S.companyMonths>=12?Math.round(S.salary*10000/12*S.companyMonths/12):0;
+ S.career[S.career.length-1].to=`${S.cal}.${S.month}`;S.career[S.career.length-1].why='이직';
+ const newSal=Math.round(S.salary*(up?1.3:1.22));if(up&&S.rank<8)S.rank++;
+ S.money+=sev;S.stats.earned+=sev;S.cid=t.id;S.salary=newSal;S.companyMonths=0;S.boss=55;S.strikes.boss=0;S.jobHunt=0;S.line=null;S.flags.lineYear=undefined;S.flags.ttarget=null;S.flags.goodBoss=false;S.yearsInRank=up?0:S.yearsInRank;
+ S.career.push({c:t.name,icon:t.icon,from:`${S.cal}.${S.month}`,rank:RANKS[S.rank]});log(`✈️ ${t.name}로 이직`);
+ if(S.rank>=8)return ending('ceo');
+ confetti();showResult('✈️ 이직 성공!',`${old.icon} ${old.name}에 사직서를 냈다. 송별회에서 부장이 "자네 같은 인재를 놓치다니" 했다. 있을 땐 왜 몰랐어요?\n\n${t.icon} ${t.name} ${RANKS[S.rank]}, 연봉 ${man(newSal)}으로 새 출발!${sev?`\n퇴직금 ${won(sev)} 정산 완료.`:''}`,[['salary',up?30:22]],()=>guard(next),'새 회사로 ▶','✈️');}
+
+/* ===================== 시말서 ===================== */
+const TEAMS=['영업1팀','경영지원팀','마케팅팀','전략기획팀','구매팀','고객지원팀'];
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const val=id=>{const e=$id(id);return e&&typeof e.value==='string'?e.value.trim():'';};
+function paper(o){const c=C();const p=o.prev||{};if(!S.flags.team)S.flags.team=pick(TEAMS);
+ const fld=(id,ph)=>o.edit?`<textarea id="${id}" placeholder="${ph}">${esc(p[id])}</textarea>`:`<div class="filled">${p[id]?nl(esc(p[id])):'<span class="empty">(공란)</span>'}</div>`;
+ return `<div class="paper">${o.stamp||''}<div class="doc-title">시말서</div>
+ <table class="form"><tr><th>소 속</th><td>${c.name} ${S.flags.team}</td><th>직 위</th><td>${RANKS[S.rank]}</td></tr>
+ <tr><th>성 명</th><td>${S.name}</td><th>발생일</th><td>${S.cal}. ${S.month}. ${o.day}.</td></tr>
+ <tr><th>제 목</th><td colspan="3"><b>${o.why}</b>에 관한 건</td></tr>
+ <tr><th>사건<br>경위</th><td colspan="3">${fld('f1','언제, 어디서, 무슨 일이 있었는지 사실대로 적으세요.')}</td></tr>
+ <tr><th>발생<br>원인</th><td colspan="3">${fld('f2','왜 이런 일이 생겼는지, 본인의 부족했던 점을 적으세요.')}</td></tr>
+ <tr><th>반성 및<br>재발 방지<br>대책</th><td colspan="3">${fld('f3','반성하는 마음과 앞으로 어떻게 하겠는지 구체적으로 적으세요.')}</td></tr></table>
+ <p class="pledge">위 본인은 상기 사항에 대하여 깊이 반성하며, 향후 동일한 사례가 재발하지 않도록 할 것을 서약하고 이에 시말서를 제출합니다.</p>
+ <p class="date">${S.cal}년 ${S.month}월 ${o.day}일</p>
+ <p class="sign">작성자 ${RANKS[S.rank]} ${o.edit?`<input id="f4" placeholder="(서명)" value="${esc(p.f4)}" maxlength="8">`:`<span class="sig">${p.f4?esc(p.f4):'(서명 없음)'}</span>`} (인)</p>
+ <p class="to">${c.name} 대표이사 귀하</p></div>`;}
+function sisal(why,intro,next,attempt=1,prev){const day=(prev&&prev.day)||R(1,28);
+ screen(()=>hud()+`<section class="card"><div class="npc"><div class="npc-ava">👨‍💼</div><div><div class="npc-name">김부장 · 누적 시말서 ${S.stats.sisal||0}장</div><h2>📝 시말서 ${attempt>1?'다시 써 와!':'작성'}</h2></div></div>
+ <div class="txt">${nl(intro)}</div>${paper({why,day,edit:true,prev})}
+ <div class="info">✍️ <b>직접 써야 해.</b> 부장님 체크포인트: 사건 경위를 구체적으로 썼나 · 원인을 내 탓으로 분석했나 · 반성하는 표현이 있나 · 재발 방지 대책이 구체적인가 · 본인 이름으로 서명했나.<br>남 탓, 억울함 호소, 장난은 바로 반려된다. (시말서 3장 누적 시 경고장)</div>
+ <button class="btn main" onclick="${b(()=>judgeSisal(why,intro,next,attempt,{f1:val('f1'),f2:val('f2'),f3:val('f3'),f4:val('f4'),day}))}">📤 부장님께 제출하기</button></section>`,
+ ()=>{const e=$id('f1');if(e&&e.focus)try{e.focus({preventScroll:true});}catch(x){}});}
+function judgeSisal(why,intro,next,attempt,v){const all=[v.f1,v.f2,v.f3].join(' ');const notes=[];let sc=0;
+ if(v.f1.length>=25)sc++;else notes.push(v.f1?'경위가 너무 짧잖아. 육하원칙 몰라?':'사건 경위가 비어 있잖아!');
+ if(v.f2.length>=15)sc++;else notes.push(v.f2?'원인 분석이 이게 다야?':'발생 원인을 안 썼네?');
+ if(v.f3.length>=30)sc++;else notes.push(v.f3?'대책이 너무 성의 없어. 더 구체적으로!':'재발 방지 대책이 없잖아!');
+ if(/죄송|반성|송구|사과|면목|불찰|잘못했|잘못을|부주의|경솔/.test(all))sc++;else notes.push('반성하는 마음이 하나도 안 보이는데?');
+ if(/재발|방지|철저|점검|확인|주의|개선|체크|검토|습관|반드시|꼭|미리|두 번|두번|다시는/.test(v.f3))sc++;else notes.push('그래서 앞으로 어떻게 하겠다는 거야? 대책을 써.');
+ if(v.f4&&v.f4.replace(/\s/g,'')===S.name.replace(/\s/g,''))sc++;else notes.push(v.f4?'서명이 본인 이름이랑 다르잖아?':'서명 누락! 기본이 안 돼 있어.');
+ if(/억울|탓|잘못이 아니|잘못 아니|억까|왜 제가|왜 내가|시켜서|어쩔 수 없|과장님이|부장님이|제 책임이 아니/.test(all)){sc-=2;notes.push('이거 시말서야, 해명서야? 남 탓 하지 마!');}
+ if(/ㅋ|ㅎㅎ|ㅠ|ㅜ|퇴사|때려치|꼰대|ㅅㅂ|시발|씨발|개같|존나|좆/.test(all)){sc-=3;notes.push('장난해?! 지금 이게 시말서야?!');}
+ const done=(kind,stampTxt,title,comment,fx,counted)=>{const ch=apply(fx);if(counted)S.stats.sisal=(S.stats.sisal||0)+1;log(`📝 시말서 ${stampTxt}: ${why}`);
+  const after=()=>{if(counted&&S.stats.sisal%3===0){S.strikes.boss++;if(S.strikes.boss>=3)return unemploy('권고사직 (경고 3회 누적)',S.salary*10000/12*3,{ui:true});return strikeScreen('📛','시말서 3장 누적 → 경고장',`시말서가 벌써 ${S.stats.sisal}장째다. 인사팀에서 경고장이 날아왔다.\n"근무 태도 불량으로 경고 처분합니다."`,'boss',()=>guard(next));}guard(next);};
+  screen(()=>hud()+`<section class="card"><h2>${title}</h2>${paper({why,day:v.day,prev:v,stamp:`<div class="stamp ${kind==='good'?'blue':''}">${stampTxt}</div>`})}
+  ${notes.length?`<div class="redpen">${notes.map(n=>`<div>✎ ${n}</div>`).join('')}</div>`:''}
+  <div class="txt" style="margin-top:12px">👨‍💼 ${comment}</div>${chipsHtml(ch)}
+  ${kind==='retry'?`<button class="btn main" onclick="${b(()=>sisal(why,'"다시 써 와. 이번엔 제대로."\n부장이 빨간펜 자국이 가득한 시말서를 돌려줬다.',next,2,v))}">✏️ 다시 쓰기 ▶</button>`:`<button class="btn main" onclick="${b(after)}">자리로 돌아가기 ▶</button>`}
+  <p class="k" style="text-align:center;margin-top:8px">누적 시말서 ${S.stats.sisal||0}장 · ${3-((S.stats.sisal||0)%3)}장 더 쌓이면 경고장</p></section>`);};
+ if(sc>=5)return done('good','결재','✅ 시말서 결재 완료','"음… 이 정도면 됐어. 반성하는 게 보이네. 앞으로 조심해."',{boss:2,mental:-4},true);
+ if(sc>=3)return done('ok','수리','📄 시말서 수리','"형식은 갖췄는데 진심이 안 느껴져. 일단 받아는 둘게."',{boss:-2,mental:-7},true);
+ if(attempt<2)return done('retry','반려','❌ 시말서 반려','"이걸 시말서라고 써 온 거야? 다시 써 와!"',{mental:-6},false);
+ const cut=Math.round(S.salary*10000/12*.1/1000)*1000;
+ return done('fail','반려','⚖️ 인사위원회 회부 → 감봉','"두 번이나 이런 걸 가져와? 됐어, 인사위원회에 넘길게."\n결과: 감봉 1개월 (월급의 10%).',{boss:-8,mental:-10,money:-cut},true);}
+
+/* ===================== 월말: 이벤트 → 월급 ===================== */
+function monthEnd(){S.evLeft=(P(.9)?1:0)+(P(.35)?1:0);nextEvent();}
+function nextEvent(){if(!S.employed)return;if(S.evLeft>0){S.evLeft--;const ev=pickEvent();if(ev)return runEvent(ev,nextEvent);}payday(afterPay);}
+function afterPay(){if(S.month===12)return yearReview(advanceMonth);advanceMonth();}
+function advanceMonth(){if(!S.employed)return;S.notices=[];const r=advanceCal();if(r)return ending(r);monthStart();}
+function expenses(){const L=S.life;const yrs=Math.floor(S.careerMonths/12);const ex=[];
+ if(!L.house)ex.push(['🏠 월세',Math.round(550000*Math.pow(1.025,yrs)/1000)*1000]);else if(L.loan>0)ex.push(['🏦 주택담보대출 원리금',L.loanPay]);
+ ex.push(['💳 카드값 (생활비)',700000+(L.married?600000:0)+Math.min(yrs,25)*15000+R(0,20)*10000]);
+ if(L.kids)ex.push([`👶 육아·교육비 (${L.kids}명)`,L.kids*(600000+Math.min(yrs,20)*20000)]);
+ ex.push(['📱 통신비',69000*(L.married?2:1)]);ex.push(['🚇 교통·주유비',L.car>0||L.married?250000:80000]);
+ if(L.car>0)ex.push(['🚗 자동차 할부',500000]);
+ if(S.careerMonths<36)ex.push(['🎓 학자금 대출 상환',200000]);
+ if(S.money<0)ex.push(['💸 마이너스통장 이자',Math.round(-S.money*.006/1000)*1000]);
+ return ex;}
+function taxRate(s){return s<3000?.015:s<4500?.03:s<6000?.05:s<8000?.08:s<12000?.12:s<20000?.18:s<35000?.25:.3;}
+function payday(next){const c=C();const r10=x=>Math.round(x/10)*10;const notes=[];
+ let gross=S.salary*10000/12;
+ if(S.noPay>0){gross=0;S.noPay--;notes.push('🫠 휴직 중이라 이번 달 급여는 없다 (무급 휴직)');}
+ if(S.probation>0){gross*=.8;notes.push('📎 수습기간이라 급여 80%만 지급');S.probation--;}
+ let ot=0;if(S.otThisMonth>0&&gross>0){if(c.otPay)ot=Math.round(S.salary*10000/12/209*1.5*3*S.otThisMonth/1000)*1000;else notes.push(`😡 이번 달 야근 ${S.otThisMonth}번… 포괄임금제라 수당 0원 (억까)`);}
+ gross=r10(gross);const pay=gross+ot;
+ const pens=r10(Math.min(gross,6170000)*.045),hlth=r10(gross*.03545),care=r10(hlth*.1295),emp=r10(pay*.009),tax=r10(pay*taxRate(S.salary)),loc=r10(tax*.1);
+ const net=pay-pens-hlth-care-emp-tax-loc;let credited=net,delayed=false;
+ if(c.black&&gross>0&&P(.22)){delayed=true;credited=0;S.unpaid+=net;notes.push('💢 "회사 사정상 이번 달 급여는 다음 달에 함께 지급됩니다." 월급이 밀렸다! (억까)');apply({mental:-12});}
+ else if(S.unpaid>0&&gross>0){credited+=S.unpaid;notes.push(`💸 밀렸던 월급 ${won(S.unpaid)}도 같이 들어왔다.`);S.unpaid=0;}
+ const income=[];if(S.life.dual)income.push(['💑 배우자 월급 (맞벌이)',2800000+Math.min(Math.floor(S.careerMonths/12),20)*60000]);
+ const exp=expenses();const expTot=exp.reduce((a,x)=>a+x[1],0);const incTot=income.reduce((a,x)=>a+x[1],0);
+ const before=S.money;S.money+=credited+incTot-expTot;S.stats.earned+=credited;if(!delayed&&gross>0)apply({mental:4});
+ if(S.life.car>0)S.life.car--;
+ if(S.life.house&&S.life.loan>0){S.life.loan=Math.max(0,S.life.loan-Math.round(S.life.loanPay*.45));if(S.life.loan===0){S.life.loanPay=0;S.notices.push('🎉 주택담보대출 완납! 이제 진짜 내 집이다.');}}
+ S.otThisMonth=0;log(`💸 월급 ${won(credited)}`);
+ screen(()=>hud()+`<section class="card"><h2>💸 ${S.month}월 월급날!</h2>
+ <div class="sms"><div class="from">📩 ${c.name} 급여 · 방금</div>${delayed?'[알림] 이번 달 급여 지급이 연기되었습니다.':gross===0?'[알림] 이번 달 급여 없음 (휴직)':`[입금] <b>${won(credited)}</b>`}</div>
+ ${notes.map(n=>`<div class="warn">${n}</div>`).join('')}
+ <div class="slip"><h3>📄 ${S.cal}년 ${S.month}월 급여명세서 · ${S.name} ${RANKS[S.rank]}</h3><table>
+ <tr class="sec"><td colspan="2">지급 내역</td></tr>
+ <tr><td>기본급 (연봉 ${man(S.salary)} ÷ 12)</td><td class="n">${won(gross)}</td></tr>${ot?`<tr><td>연장근로수당 (야근 ${'🌙'.repeat(Math.min(3,Math.round(ot/(S.salary*10000/12/209*4.5))))})</td><td class="n plus">+${won(ot)}</td></tr>`:''}
+ <tr class="sec"><td colspan="2">공제 내역</td></tr>
+ <tr><td>국민연금</td><td class="n minus">-${won(pens)}</td></tr><tr><td>건강보험 + 장기요양</td><td class="n minus">-${won(hlth+care)}</td></tr><tr><td>고용보험</td><td class="n minus">-${won(emp)}</td></tr><tr><td>소득세 + 지방소득세</td><td class="n minus">-${won(tax+loc)}</td></tr>
+ <tr class="tot"><td>실수령액</td><td class="n">${won(net)}</td></tr></table></div>
+ ${income.length?`<div class="slip"><h3 style="background:var(--g-green)">💑 가계 수입</h3><table>${income.map(x=>`<tr><td>${x[0]}</td><td class="n plus">+${won(x[1])}</td></tr>`).join('')}</table></div>`:''}
+ <div class="slip red"><h3>⏱️ 그리고 3초 뒤… 자동이체</h3><table>${exp.map(x=>`<tr><td>${x[0]}</td><td class="n minus">-${won(x[1])}</td></tr>`).join('')}
+ <tr class="tot"><td>통장을 스쳐간 금액</td><td class="n minus">-${won(expTot)}</td></tr></table></div>
+ <div class="bal">💰 잔고 <span id="bal">${won(before)}</span></div>
+ <p class="tip" style="text-align:center">${pick(['월급은 통장을 스쳐 지나갈 뿐…','로그인했다가 바로 로그아웃하는 월급','이번 달도 사이버 머니였다','월급 들어온 날이 제일 가난한 날'])} · 지금까지 받은 월급 총액 ${eok(S.stats.earned)}</p>
+ <button class="btn main" onclick="${b(()=>guard(next))}">${S.month===12?'📊 연말 인사평가 받으러 가기 ▶':'다음 달로 ▶'}</button></section>`,()=>countUp('bal',before,S.money));}
+function countUp(id,from,to){const el=$id(id);if(!el||!CAN_ANIM)return;const tk=TK;setTimeout(()=>{const t0=performance.now();const st=t=>{if(tk!==TK)return;const k=Math.min(1,(t-t0)/1300);el.textContent=won(from+(to-from)*(1-Math.pow(1-k,3)));el.style.color=to<from?'#e5484d':'#16a34a';if(k<1)requestAnimationFrame(st);};requestAnimationFrame(st);},500);}
+
+/* ===================== 인사평가 ===================== */
+const UNFAIR=['"이번엔 승진 앞둔 박과장한테 좋은 등급 몰아주기로 했어. 내년엔 꼭 챙겨줄게~" (작년에도 들은 말이다)','"평가는 원래 연차 순이야. 이해하지?"','"팀에 S·A 쿼터가 정해져 있어서… 미안하다."','"자네가 잘한 건 아는데, 본부장님이 자네 얼굴을 잘 모르시더라고."'];
+function yearReview(next){S.yearsInRank++;if(isExec())return execReview(next);
+ const c=C();const ach=clamp(Math.round(S.perf/Math.max(1,S.kpiTarget)*80),0,100);
+ const parts=[['🎯 업적 (KPI 달성)',ach,.5],['📈 역량 (실력)',S.skill,.2],['👔 태도 (상사 평가)',S.boss,.2],['🤝 다면 (동료 평가)',S.peers,.1]];
+ let score=parts.reduce((a,p)=>a+p[1]*p[2],0)+R(-4,4)+(S.flags.goodBoss?3:0)+(S.flags.promoBoost?10:0)+(S.flags.hero?3:0);S.flags.promoBoost=false;
+ let gi=score>=84?0:score>=70?1:score>=54?2:score>=40?3:4;const raw='SABCD'[gi];let unfair=null;
+ if(gi<4&&P(.18)){unfair=pick(UNFAIR);gi++;}
+ const show=g=>{const comment={S:'"올해 정말 잘했어. 회사의 핵심 인재야."',A:'"수고 많았어. 내년도 이렇게만 하자."',B:'"무난했어. 근데 좀 더 보여줄 게 있지 않나?"',C:'"음… 올해는 좀 아쉬웠지?"',D:'"자네, 계속 이런 식이면 곤란해."'}[g];
+  screen(()=>hud()+`<section class="card"><h2>📊 ${S.cal}년 인사평가 결과</h2><p class="k">${S.name} ${RANKS[S.rank]} · ${c.name} · KPI 목표 ${S.kpiTarget} / 달성 ${S.perf}</p>
+  ${parts.map(p=>`<div class="evrow"><span>${p[0]}</span><div class="progress"><div style="width:${p[1]}%"></div></div><b>${p[1]}</b></div>`).join('')}
+  <div class="evrow"><span><b style="font-family:inherit;font-size:14px">종합 점수</b></span><div class="progress"><div style="width:${Math.min(100,score)}%;background:var(--g-gold)"></div></div><b>${Math.round(score)}</b></div>
+  <div class="grade g-${g}">${g}</div><p class="dlg" style="text-align:center;margin:0;font-size:17px">${comment}</p>
+  ${unfair?`<div class="warn">😤 <b>억까: 상대평가 조정</b> — 원래 ${raw}였는데…<br>${unfair}</div>`:''}
+  <div class="info">⭐ 승진 포인트 +${{S:5,A:4,B:3,C:2,D:1}[g]} (S5·A4·B3·C2·D1)</div>
+  <div class="choices"><button onclick="${b(()=>afterGrade(g,next))}">✍️ 평가 결과에 서명한다</button>
+  ${unfair||gi>=2?`<button onclick="${b(()=>{if(P(unfair?.35:.15)){const ng='SABCD'['SABCD'.indexOf(g)-1];apply({mental:5});showResult('📝 이의 제기 성공!',`인사팀이 재검토했다. 평가 등급이 ${g} → ${ng}로 조정됐다!`,[],()=>afterGrade(ng,next),'다음 ▶','🙌');}else{const ch=apply({boss:-8,mental:-5});showResult('📝 이의 제기 기각','"평가는 이미 확정됐습니다." 그리고 부장이 이의 제기 사실을 알게 됐다.',ch,()=>afterGrade(g,next),'다음 ▶','😑');}})}">📝 이의 제기한다 (성공률 ${unfair?'35':'15'}%)</button>`:''}</div></section>`);};
+ show('SABCD'[gi]);}
+function afterGrade(g,next){const c=C();const gi='SABCD'.indexOf(g);S.lastGrade=g;S.promoPts+={S:5,A:4,B:3,C:2,D:1}[g];
+ const mult=[2,1.5,1,.5,0][gi]*(c.black?.2:c.bonus);const bonus=Math.round(S.salary*10000/12*mult/10000)*10000;if(bonus>0){S.money+=bonus;S.stats.earned+=bonus;S.stats.bonus+=bonus;}
+ let base,canNeg=true,note='';
+ if(c.safe){base=[4,3.5,2.5,2,1.5][gi];canNeg=false;note='공기업은 호봉제라 협상 같은 건 없다. 정해진 대로 오른다.';}
+ else if(c.black&&P(.5)){base=0;canNeg=false;note='"올해 회사가 많이 어려웠어. 다들 고생한 거 아는데… 동결하자. 가족이잖아?" (억까)';}
+ else if(c.black)base=[5,3,2,0,0][gi];else base=[9,6,3.5,1,0][gi];
+ const btns=()=>{const a=[`<button onclick="${b(()=>finishReview(g,base,'회사 제시안에 서명했다. 협상은 무슨, 사인이 곧 협상이다.',next))}">✍️ "감사합니다." 바로 서명한다</button>`];
+  if(canNeg){const p=Math.min(.9,[.7,.5,.3,.1,.05][gi]+S.skill/400);
+   a.push(`<button onclick="${b(()=>P(p)?finishReview(g,base+3,'"…알겠어, 3% 더 맞춰볼게." 협상 성공!',next):(apply({boss:-5,mental:-5}),finishReview(g,base,'"자네만 힘든 거 아니야." 거절당했다. 분위기만 싸해졌다.',next)))}">💬 "3%만 더 부탁드립니다" (성공률 ${Math.round(p*100)}%)</button>`);
+   if(S.flags.offer)a.push(`<button onclick="${b(()=>{S.flags.offer=false;P(.8)?finishReview(g,base+10,'오퍼 레터를 내밀자 인사팀 표정이 바뀌었다. "…카운터 오퍼 드리겠습니다." 연봉 대폭 인상!',next):(apply({boss:-10}),finishReview(g,base,'"그럼 그쪽으로 가시든가요." …통하지 않았다.',next));})}">📄 경쟁사 오퍼 레터를 꺼낸다 (강력)</button>`);
+   else a.push(`<button onclick="${b(()=>P(.25)?finishReview(g,base+8,'"다른 데서 오퍼가 왔습니다"(뻥). 인사팀이 당황해서 카운터를 줬다! 연기력 만렙.',next):(apply({boss:-15,mental:-5}),finishReview(g,Math.max(0,base-1),'"그래요? 어디요? 회사 이름 말해보세요." …말문이 막혔다. 블러핑 들통. 괘씸죄 추가.',next)))}">🎭 "다른 회사 오퍼 있습니다" (블러핑 25%)</button>`);}
+  return a.join('');};
+ screen(()=>hud()+`<section class="card"><h2>💰 성과급 & 연봉협상</h2>
+ <div class="sms"><div class="from">📩 ${c.name} 성과급 · 방금</div>${bonus>0?`[입금] <b>${won(bonus)}</b> (${g}등급 · 월급의 ${Math.round(mult*100)}%)`:`[알림] ${g}등급은 성과급 대상이 아닙니다.`}</div>
+ <div class="info">💼 회사 제시 연봉 인상률: <b>${base}%</b> (${man(S.salary)} → ${man(S.salary*(1+base/100))})${note?'<br>'+note:''}</div>
+ <h3 style="margin-top:14px">🤝 연봉협상 테이블</h3><div class="choices">${btns()}</div></section>`);}
+function salCap(){const c=C();return Math.round([6500,8200,10000,12000,15000][Math.min(S.rank,4)]*(c.black?.6:c.startup?.9:c.id==='mid'?.85:c.safe?.8:1));}
+function finishReview(g,raise,msg,next){const before=S.salary;S.salary=Math.round(S.salary*(1+raise/100));if(S.salary>salCap()){S.salary=Math.max(before,salCap());msg+='\n\n📏 직급별 연봉 상한(연봉 테이블)에 걸려 인상분이 잘렸다. 더 받으려면 승진해야 한다!';}log(`${g}등급, 연봉 ${man(S.salary)}`);
+ let status='';
+ if(S.rank<4){const pr=PROMO[S.rank];S.promoCand=(S.yearsInRank>=pr.yrs&&S.promoPts>=pr.pts)||!!S.flags.toPriority;
+  status=S.promoCand?`<div class="good">📢 <b>${RANKS[S.rank+1]} 승진심사 대상자</b>로 선정됐다! 1월에 ${C().black?'사장님 면담':C().safe||pr.exam==='quiz'?'필기 승진시험':'승진 PT 면접 + 심사'}이 있다.${S.hints?` (힌트 ${S.hints}개 보유)`:' 미리 "승진시험 대비"를 해두면 힌트를 쓸 수 있다.'}</div>`
+  :`<div class="info">⭐ 다음 승진(${RANKS[S.rank+1]})까지 — 근속 ${S.yearsInRank}/${pr.yrs}년 · 승진 포인트 ${S.promoPts}/${pr.pts}</div>`;}
+ else if(S.rank===4){S.execCand=S.yearsInRank>=3&&'SA'.includes(g)&&S.age>=44;status=S.execCand?'<div class="good">🌟 <b>임원 후보</b>로 이름이 올라갔다! 1월 임원 인사를 기다려 보자.</div>':`<div class="info">👑 임원(상무) 후보 조건 — 부장 3년 이상(현재 ${S.yearsInRank}년) · S/A 등급 · 만 44세 이상</div>`;}
+ screen(()=>hud()+`<section class="card"><h2>📝 연봉 계약 완료</h2><div class="txt">${msg}</div>
+ <div class="bal">${man(before)} → <span class="plus">${man(S.salary)}</span></div>${status}
+ <button class="btn main" onclick="${b(next)}">${S.cal+1}년 시작 ▶</button></section>`);}
+function execReview(next){const score=(S.rate-100)+(S.boss-50)*.5+R(-8,8);const before=S.salary;
+ let title,txt,ic,go=next,promo=false;
+ if(score>=15&&S.rank<8&&P(.65)){promo=true;S.rank++;S.yearsInRank=0;S.salary=Math.max(Math.round(S.salary*1.2),EXEC_SAL[S.rank]);S.stats.promos++;ic='🚀';title=`${RANKS[S.rank]} 승진!`;txt=`이사회가 올해 실적(${S.rate}%)을 높이 평가했다. ${RANKS[S.rank]}로 승진! 연봉 ${man(S.salary)}.`;if(S.rank>=8)go=()=>ending('ceo');}
+ else if(score>=-10){S.salary=Math.round(S.salary*1.05);const bonus=Math.max(0,Math.round(S.salary*10000*(S.rate-90)/200/10000)*10000);S.money+=bonus;S.stats.earned+=bonus;ic='📜';title='임원 재계약';txt=`실적 달성률 ${S.rate}%. 이사회가 1년 재계약을 승인했다. 연봉 5% 인상${bonus?`, 경영 성과급 ${won(bonus)}`:''}.`;}
+ else{const sev=Math.round(S.salary*10000/2);S.money+=sev;S.stats.earned+=sev;return ending('exec_retire');}
+ log(title);if(promo)confetti();
+ screen(()=>hud()+`<section class="card"><div class="bigicon">${ic}</div><h2 style="text-align:center">${title}</h2><div class="txt">${txt}</div>
+ <div class="evrow"><span>📈 실적 달성률</span><div class="progress"><div style="width:${Math.min(100,S.rate/1.5)}%"></div></div><b>${S.rate}%</b></div>
+ <div class="evrow"><span>🤵 회장 신임</span><div class="progress"><div style="width:${S.boss}%"></div></div><b>${S.boss}</b></div>
+ <div class="bal">${man(before)} → <span class="plus">${man(S.salary)}</span></div>
+ <button class="btn main" onclick="${b(go)}">${S.rank>=8?'👑 사장실로 ▶':`${S.cal+1}년 시작 ▶`}</button></section>`);}
+
+/* ===================== 승진 프로세스 ===================== */
+function promote(next,msg){S.rank++;S.yearsInRank=0;S.promoPts=0;S.stats.promos++;const pr=C().black?3:R(8,12);S.salary=Math.round(S.salary*(1+pr/100));S.mental=clamp(S.mental+15,0,100);S.boss=clamp(S.boss+5,0,100);log(`🎉 ${RANKS[S.rank]} 승진!`);setKpi();
+ screen(()=>hud()+`<section class="card"><div class="bigicon">🎉</div><h2 style="text-align:center;font-size:34px">${RANKS[S.rank]} 승진!</h2><div class="txt">${msg}\n\n사내 게시판 인사발령: <b>${S.name} ${RANKS[S.rank-1]} → ${RANKS[S.rank]}</b>\n승진 인상 +${pr}% → 연봉 ${man(S.salary)}${C().black?' (승진했는데 3%밖에 안 오름. 직함만 바뀌었다)':''}</div>
+ ${chipsHtml([['salary',pr],['mental',15]])}<button class="btn main" onclick="${b(next)}">명함 새로 파러 가기 ▶</button></section>`,confetti);}
+function promoProcess(next){const c=C();const pr=PROMO[S.rank];S.stats.exams++;
+ if(S.flags.toPriority){S.flags.toPriority=false;return promote(next,'작년에 TO 부족으로 밀렸던 승진이 우선 반영됐다!');}
+ const onPass=()=>{if(P(.12)){S.flags.toPriority=true;S.promoCand=false;apply({mental:-12});return showResult('😤 억까: 합격했는데 TO 부족','심사는 통과했다. 그런데 "올해 승진 TO가 하나뿐이라 사장님 조카가 먼저 달기로 했어. 내년엔 자동으로 승진시켜 줄게."\n…진짜죠?',[['mental',-12]],next,'다음 ▶','😤');}promote(next,'심사를 통과했다!');};
+ const onFail=msg=>{apply({mental:-10});log('승진 실패');showResult('😞 승진 탈락',msg+'\n\n승진 포인트는 유지된다. 내년 12월 평가 후 다시 심사 대상이 될 수 있다.',[['mental',-10]],next,'다음 ▶','😞');};
+ if(c.black)return screen(()=>hud()+sceneCard('👴','사장님','승진 면담',`"자네 ${RANKS[S.rank+1]} 달고 싶어? 우리 회사는 시험 같은 거 없어. 내 마음이 시험이야."`,[['"평생 충성하겠습니다!"',.6],['"성과로 증명하겠습니다"',.4]].map(([t,p])=>`<button onclick="${b(()=>P(p)?promote(next,'사장님 재량으로 승진이 결정됐다. "그래, 그 맛이지!"'):onFail('"말로만?" 사장님 마음이 아직 안 열렸다.'))}">${t}</button>`).join('')));
+ const type=c.safe?'quiz':pr.exam;
+ screen(()=>hud()+`<section class="card"><div class="bigicon">📢</div><h2 style="text-align:center">${S.cal}년 정기 승진 심사</h2>
+ <div class="txt">인사팀 공지: <b>${S.name} ${RANKS[S.rank]}</b>님은 <b>${RANKS[S.rank+1]}</b> 승진 심사 대상자입니다.\n\n${type==='quiz'?`📝 <b>필기 승진시험</b> — 직무·회계·엑셀·노동법 6문항, 문항당 15초.\n4문항 이상 맞히면 합격. 보유 힌트(50:50): <b>${S.hints}개</b>`:`🎤 <b>승진 PT 면접 + 심사</b> — 임원진 앞에서 3개 질문에 답한다.\n면접 점수와 함께 상사 호감(${S.boss}) 40 이상, 동료 관계(${S.peers}) 30 이상이 필요하다.`}</div>
+ <button class="btn main" onclick="${b(()=>type==='quiz'?quiz({qs:shuffle(QUIZ).slice(0,6).map(q=>({q:q[0],opts:shuffle(q[1].map((t,i)=>({t,ok:i===0}))),ex:q[2]})),i:0,score:0},s=>s>=4?onPass():onFail(`6문제 중 ${s}개 맞혔다. 합격선은 4개. 회계 문제에서 무너졌다.`)):pt(0,0,shuffle(PT_QS).slice(0,3),s=>{const tot=s+(S.skill-50)/25;if(tot>=3&&S.boss>=40&&S.peers>=30)onPass();else onFail(tot<3?'면접에서 임원진의 표정이 좋지 않았다.':S.boss<40?'면접은 괜찮았지만 상사 평가가 발목을 잡았다.':'다면평가에서 동료 점수가 너무 낮았다.');}))}">시험장 입장 ▶</button></section>`);}
+function quiz(Q,done){if(Q.i>=Q.qs.length){const s=Q.score;return showResult('📝 시험 종료',`6문항 중 ${s}문항 정답!${s>=4?'\n합격선(4문항)을 넘었다. 이제 최종 심사만 남았다…':''}`,[],()=>done(s),'결과 확인 ▶',s>=4?'🙆':'🙅');}
+ const q=Q.qs[Q.i];window._q=q;const tk=TK+1;
+ const answer=(ok,timeout)=>{if(ok)Q.score++;const nx=()=>{Q.i++;quiz(Q,done);};
+  screen(()=>hud()+`<section class="card"><h2>📝 문제 ${Q.i+1}/6 — ${timeout?'⏰ 시간 초과!':ok?'⭕ 정답!':'❌ 오답'}</h2><div class="txt">${q.q}</div>
+  ${q.opts.map(o=>`<div class="qopt ${o.ok?'ok':''}">${o.ok?'✅ ':''}${o.t}</div>`).join('')}<div class="info">💡 ${q.ex}</div>
+  <button class="btn main" onclick="${b(nx)}">다음 ▶</button></section>`);};
+ screen(()=>hud()+`<section class="card"><div class="aphead"><h2>📝 승진시험 ${Q.i+1}/6</h2><span class="k">현재 ${Q.score}점</span>
+ ${S.hints>0&&!q.hinted?`<button class="btn sm" style="margin-left:auto" onclick="${b(()=>{S.hints--;q.hinted=true;let n=0;q.opts.forEach(o=>{if(!o.ok&&n<2){o.gone=true;n++;}});quiz(Q,done);})}">🔍 50:50 힌트 (${S.hints})</button>`:''}</div>
+ <div class="timer"><div id="tm"></div></div><div class="txt">${q.q}</div>
+ ${q.opts.map(o=>`<button class="qopt ${o.gone?'gone':''}" onclick="${b(()=>answer(o.ok))}">${o.t}</button>`).join('')}</section>`,
+ ()=>{if(!CAN_ANIM)return;const tm=$id('tm');requestAnimationFrame(()=>{tm.style.transitionDuration='15s';tm.style.width='0%';});setTimeout(()=>{if(TK===tk)answer(false,true);},15000);});}
+function pt(i,score,qs,done){if(i>=qs.length)return done(score);const q=qs[i];
+ screen(()=>hud()+sceneCard('🧑‍⚖️',`승진 PT 면접 · 질문 ${i+1}/${qs.length} · 임원 3명`,'🎤 승진 면접',q.q,q.ch.map(o=>`<button onclick="${b(()=>pt(i+1,score+(typeof o.s==='function'?o.s():o.s),qs,done))}">${o.t}</button>`).join('')));}
+function execSelection(next){const c=C();const p=clamp(.28+(S.boss-60)/100+(S.flags.promoBoost?.15:0)+(S.lastGrade==='S'?.15:0)+(S.flags.hero?.05:0)-(c.black?.2:0)-(c.safe?.1:0),.05,.85);
+ screen(()=>hud()+`<section class="card"><div class="bigicon">🌟</div><h2 style="text-align:center">${S.cal}년 정기 임원 인사</h2><div class="txt">오늘 오전 10시, 임원 인사 명단이 발표된다. 부장 ${S.yearsInRank}년차. 이번엔 될까?\n\n예상 확률: 약 ${Math.round(p*100)}% (회장 신임·평가 등급·라인에 따라 달라짐)</div>
+ <button class="btn gold" onclick="${b(()=>{if(P(p)){S.rank=5;S.yearsInRank=0;S.salary=Math.max(Math.round(S.salary*1.3),EXEC_SAL[5]);S.rate=100;S.boss=55;S.stats.promos++;log('🌟 상무 승진 (임원)');
+  screen(()=>hud()+`<section class="card"><div class="bigicon">⭐</div><h2 style="text-align:center;font-size:34px">임원 승진: 상무</h2><div class="txt">명단 맨 위에 내 이름이 있었다. "${S.name} 상무". 별을 달았다.\n개인 사무실, 기사 딸린 차, 그리고 <b>1년 계약직</b>. 이제부터는 매년 실적으로 재계약 여부가 결정된다.\n\n연봉 ${man(S.salary)}</div><div class="info">👑 임원 모드 시작! 행동이 임원 전용으로 바뀌고, <b>실적 달성률</b>과 <b>회장 신임</b>으로 매년 평가받는다. 사장까지 가보자.</div><button class="btn main" onclick="${b(next)}">임원실로 출근 ▶</button></section>`,confetti);}
+  else{apply({mental:-8});showResult('😶 명단에 없다','명단을 세 번 확인했다. 내 이름은 없었다. 동기 박부장 이름이 있었다.\n(올해 평가에서 다시 후보가 될 수 있다)',[['mental',-8]],next,'다음 ▶','😶');}})}">📜 명단 확인하기</button></section>`);}
+
+/* ===================== 실직 ===================== */
+function unemploy(reason,extra,opt={}){if(isExec()){const sev=Math.round(S.salary*10000/2);S.money+=sev;return ending(reason.includes('징계')?'jail':'exec_retire');}
+ const sev=S.companyMonths>=12?Math.round(S.salary*10000/12*S.companyMonths/12):0;extra=Math.round(extra||0);
+ S.money+=sev+extra;S.stats.earned+=sev+extra;const c=C();
+ if(S.career.length){S.career[S.career.length-1].to=`${S.cal}.${S.month}`;S.career[S.career.length-1].why=reason;}
+ S.employed=false;S.unempMonths=0;S.ui=opt.ui?6:0;if(opt.stigma)S.stigma=true;S.promoCand=false;S.execCand=false;S.ap=0;S.evLeft=0;S.corruption=0;S.otThisMonth=0;S.unpaid=0;log(`📦 퇴사: ${reason}`);save();
+ screen(()=>hud()+`<section class="card"><div class="bigicon">📦</div><h2 style="text-align:center">${c.name} 퇴사</h2><div class="txt">사유: <b>${reason}</b>\n박스 하나에 짐을 담았다. 출입증을 반납하는 손이 조금 떨렸다.</div>
+ <div class="slip"><h3>🧾 퇴사 정산</h3><table><tr><td>근속기간</td><td class="n">${Math.floor(S.companyMonths/12)}년 ${S.companyMonths%12}개월</td></tr><tr><td>퇴직금</td><td class="n plus">${sev?'+'+won(sev):'없음 (1년 미만)'}</td></tr>${extra?`<tr><td>위로금</td><td class="n plus">+${won(extra)}</td></tr>`:''}<tr><td>실업급여</td><td class="n">${S.ui?'월 1,900,000원 × 6개월':'대상 아님 (자발적 퇴사·징계)'}</td></tr></table></div>
+ <div class="info">🎒 경력직으로 재취업에 도전할 수 있어. 직급(${RANKS[S.rank]})은 유지되고, 12개월 안에 재취업하지 못하면 게임 오버야.</div>
+ <button class="btn main" onclick="${b(jobBoard)}">구직 활동 시작 ▶</button></section>`);}
+
+/* ===================== 엔딩 ===================== */
+const ENDINGS={
+ retire:{i:'🏆',t:'정년퇴직',d:()=>`${S.age}세, 정년퇴직. ${S.employed?`${C().name} ${RANKS[S.rank]}으로`:''} 마지막 출근을 했다. 후배들이 꽃다발을 건넸다. 신입 때의 나에게 한마디 해준다면? "그래도 버티면 뭐라도 된다."`},
+ ceo:{i:'👑',t:'샐러리맨의 신화: 사장 취임',d:()=>`신입사원으로 시작해 ${C().name} 대표이사 사장이 됐다. 취임사에서 신입 때 국밥 먹던 얘기를 했다. 아무도 웃지 않았다. 사장이니까.`},
+ exec_retire:{i:'🎖️',t:'임원 퇴임',d:()=>`이사회가 재계약을 하지 않기로 했다. "그동안 수고 많으셨습니다." 고문 직함과 함께 회사를 떠났다. ${RANKS[S.rank]}까지 올라간 직장인 인생이었다.`},
+ exec_fired:{i:'🧊',t:'임원 경질',d:()=>'회장님의 신임을 잃었다. 월요일 아침, 내 이름이 조직도에서 사라졌다. 임원은 하루아침에 끝난다는 말이 사실이었다.'},
+ fire:{i:'🏝️',t:'경제적 자유 (FIRE)',d:()=>`순자산 ${eok(netWorth())}. 더 이상 월급이 필요 없다. ${S.age}세에 사직서를 냈다. 월요일 아침 알람을 영원히 껐다.`},
+ quit_life:{i:'🌱',t:'회사원 졸업, 인생 2막',d:()=>`${S.age}세, 회사원 인생을 졸업했다. 카페를 할지, 귀농을 할지, 유튜브를 할지 아직 모른다. 다만 내일 아침 지옥철은 안 타도 된다.`},
+ hospital:{i:'🚑',t:'건강 악화로 퇴직',d:()=>'세 번째로 쓰러졌다. 의사가 단호하게 말했다. "이대로 일하시면 정말 큰일 납니다." 회사보다 내 몸이 먼저다.'},
+ burnout:{i:'🫠',t:'번아웃: 다 타버렸다',d:()=>'세 번째 번아웃. 출근길 지하철에서 내리지 못하고 종점까지 갔다. 회사에는 "그만두겠습니다" 한 줄을 보냈다.'},
+ bankrupt:{i:'💸',t:'개인 파산',d:()=>'카드값, 대출, 마이너스 통장… 월급이 들어오기도 전에 사라진다. 결국 개인회생을 신청했다.'},
+ longjob:{i:'🕳️',t:'경력 단절',d:()=>'1년 동안 재취업에 실패했다. 이력서의 공백이 점점 길어진다. 일단 다른 길을 찾아보기로 했다.'},
+ nojob:{i:'🎒',t:'취준 장기화',d:()=>'서류 탈락, 면접 탈락, 잔고 바닥. 일단 고향에 내려가기로 했다. 엄마 밥이 맛있다. 내년에 다시 도전!'},
+ jail:{i:'⛓️',t:'구속',d:()=>'회계 부정·배임 혐의로 구속됐다. 시킨 사람도, 시킨 대로 한 사람도 법 앞에선 똑같았다. 그때 "아니오"라고 했다면…'},
+};
+function seen(){try{return JSON.parse(store('officeSimEndings2')||'[]')||[];}catch(e){return [];}}
+function markSeen(id){const s=seen();if(!s.includes(id))s.push(id);store('officeSimEndings2',JSON.stringify(s));}
+function collectionHtml(){const s=seen();return `<h3 style="margin-top:20px">📚 엔딩 도감 <span class="k">${s.length}/${Object.keys(ENDINGS).length}</span></h3><div class="coll">${Object.entries(ENDINGS).map(([k,e])=>s.includes(k)?`<div><div class="e">${e.i}</div>${e.t}</div>`:`<div class="lock"><div class="e">❔</div>???</div>`).join('')}</div>`;}
+function ending(id){const e=ENDINGS[id];markSeen(id);store('officeSim2',null);
+ if(S.career.length&&!S.career[S.career.length-1].to)S.career[S.career.length-1].to=`${S.cal}.${S.month}`;
+ const yrs=Math.floor(S.careerMonths/12),mo=S.careerMonths%12;
+ screen(()=>`<section class="card"><div class="k" style="text-align:center;letter-spacing:4px">ENDING</div><div class="end-ic">${e.i}</div><div class="end-t">${e.t}</div>
+ <div class="txt" style="margin-top:14px">${e.d()}</div>
+ <table class="sum" style="margin-top:12px">
+ <tr><td>이름 · 나이</td><td class="n">${S.name} · ${S.age}세</td></tr>
+ ${S.everHired?`<tr><td>최종 직급</td><td class="n">${RANKS[S.rank]}</td></tr><tr><td>총 직장생활</td><td class="n">${yrs}년 ${mo}개월</td></tr>
+ <tr><td>최종 연봉</td><td class="n">${man(S.salary)} (초봉 ${man(S.firstSal)})</td></tr><tr><td>평생 받은 급여·보너스</td><td class="n">${eok(S.stats.earned)}</td></tr>`:`<tr><td>지원 횟수</td><td class="n">${S.stats.apps}회</td></tr>`}
+ <tr><td>최종 순자산</td><td class="n">${eok(netWorth())}${S.life.house?' (집 포함)':''}</td></tr>
+ ${S.everHired?`<tr><td>승진 횟수 · 승진시험</td><td class="n">${S.stats.promos}회 · ${S.stats.exams}회 응시</td></tr><tr><td>혼난 횟수 · 시말서</td><td class="n">${S.stats.scold}회 · ${S.stats.sisal||0}장</td></tr><tr><td>야근 · 회식</td><td class="n">${S.stats.ot} · ${S.stats.drink}회</td></tr>`:''}
+ <tr><td>가족</td><td class="n">${S.life.married?'💑 기혼':'싱글'}${S.life.kids?` · 👶 ${S.life.kids}명`:''}${S.life.house?' · 🏠 자가':''}</td></tr>
+ </table>
+ ${S.career.length?`<h3 style="margin-top:14px">🗂️ 경력 기록</h3><ul class="career">${S.career.map(x=>`<li>${x.icon} <b>${x.c}</b> · ${x.from} ~ ${x.to||'현재'} · 입사 시 ${x.rank}${x.why?` · <span class="k">${x.why}</span>`:''}</li>`).join('')}</ul>`:''}
+ ${collectionHtml()}
+ <button class="btn main" style="margin-top:16px" onclick="${b(()=>{S=newState();drawStart();})}">🔄 새 인생 시작하기</button><button class="btn ghost" onclick="${b(titleScreen)}">타이틀로</button></section>`,['ceo','fire','retire'].includes(id)?confetti:null);}
+
+titleScreen();
+</script>
+</body>
+</html>

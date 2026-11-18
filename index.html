@@ -191,8 +191,8 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .end-ic{font-size:86px;text-align:center;filter:drop-shadow(0 10px 18px rgba(0,0,0,.2))}
 .end-t{text-align:center;font-family:'Black Han Sans';font-size:34px;background:var(--g-main);-webkit-background-clip:text;background-clip:text;color:transparent}
 .coll{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:10px}
-.coll div{border:1px solid var(--line);border-radius:14px;padding:8px;text-align:center;font-size:12px;background:#fff}
-.coll div.lock{color:#b8bfcc;background:#f4f5f8}
+.coll>div{border:1px solid var(--line);border-radius:14px;padding:8px;text-align:center;font-size:12px;background:#fff}
+.coll>div.lock{color:#b8bfcc;background:#f4f5f8}
 .coll .e{font-size:28px}
 .sum td:first-child{color:var(--sub)}
 .contract{border:1.5px dashed #b9c2d3;border-radius:16px;padding:14px;background:linear-gradient(180deg,#fffef6,#fffbea);margin-top:10px}
@@ -217,6 +217,18 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .career{font-size:13px}
 .career li{margin:2px 0}
 .row{display:flex;gap:8px;flex-wrap:wrap}
+/* 사운드 위젯 */
+#au{position:fixed;right:16px;bottom:16px;z-index:200;display:flex;flex-direction:column-reverse;align-items:flex-end;gap:8px;font-family:'Noto Sans KR',sans-serif}
+#auB{width:54px;height:54px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:var(--g-main);font-size:24px;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.4);transition:.2s}
+#auB:hover{transform:scale(1.08)}
+#auB.on{animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(124,108,255,.18),0 8px 22px rgba(0,0,0,.4)}}
+#auP{display:none;background:linear-gradient(180deg,#fff,#f4f5fd);border-radius:18px;padding:14px 16px;box-shadow:0 12px 30px rgba(0,0,0,.35);font-size:14px;min-width:200px;color:var(--ink)}
+#au.open #auP{display:flex;flex-direction:column;gap:8px}
+#auP b{font-family:'Black Han Sans';font-weight:400;font-size:17px;color:#2f2b7e}
+#auP label{display:flex;align-items:center;gap:8px;cursor:pointer}
+#auP input[type=range]{flex:1;accent-color:#6d5dfc}
+#auP small{color:var(--sub);font-size:11.5px}
 /* 시말서 */
 .paper{position:relative;background:linear-gradient(180deg,#fffef8,#fbf8ec);border:1px solid #d9d2bb;border-radius:6px;padding:30px 28px 24px;margin-top:12px;font-family:'Nanum Myeongjo',serif;color:#222;box-shadow:0 10px 24px rgba(60,50,20,.18),0 1px 0 #fff inset}
 .paper:before{content:'';position:absolute;inset:8px;border:1px solid #e9e2c9;border-radius:3px;pointer-events:none}
@@ -264,9 +276,119 @@ const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(M
 const CAN_ANIM=typeof requestAnimationFrame!=='undefined'&&typeof document.querySelectorAll==='function';
 let CHO=[],TK=0;
 function b(fn){CHO.push(fn);return `CHO[${CHO.length-1}]()`;}
-function screen(builder,after){CHO=[];TK++;app.innerHTML=builder();try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){}if(after)after();}
+function screen(builder,after){CHO=[];TK++;const h=builder();app.innerHTML=h;try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){}try{Snd.scan(h);}catch(e){}if(after)after();}
 function store(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){return null;}}
 let SPEED=(()=>{const v=store('osSpeed');return v===null||v===undefined?1:+v;})();
+
+/* ===================== 사운드 (Web Audio 합성) ===================== */
+const Snd=(()=>{const W=typeof window!=='undefined'?window:{};let ctx=null,master,bgmG,lp,sfxG,noiseBuf,timer=null,mood=null,step=0,bar=0,nextT=0;
+ const cfg={bgm:true,sfx:true,vol:.7};try{Object.assign(cfg,JSON.parse(store('osAudio')||'{}'));}catch(e){}
+ const BGMV=.3,mf=m=>440*Math.pow(2,(m-69)/12);
+ function init(){if(ctx)return true;const AC=W.AudioContext||W.webkitAudioContext;if(!AC)return false;try{ctx=new AC();}catch(e){return false;}
+  const comp=ctx.createDynamicsCompressor();comp.connect(ctx.destination);master=ctx.createGain();master.gain.value=cfg.vol;master.connect(comp);
+  bgmG=ctx.createGain();bgmG.gain.value=.0001;bgmG.connect(master);lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2400;lp.connect(bgmG);
+  sfxG=ctx.createGain();sfxG.gain.value=cfg.sfx?.8:0;sfxG.connect(master);
+  noiseBuf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  if(mood)startLoop();return true;}
+ function unlock(){if(!init())return;if(ctx.state==='suspended')ctx.resume();uiSync();}
+ function tone(f,t,dur,o={}){if(!ctx)return;const os=ctx.createOscillator(),g=ctx.createGain();os.type=o.type||'sine';os.frequency.setValueAtTime(f,t);if(o.slide)os.frequency.exponentialRampToValueAtTime(o.slide,t+dur);
+  const v=o.vol==null?.2:o.vol,a=o.a||.005;g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+Math.max(dur,a+.01));
+  os.connect(g);g.connect(o.dest||sfxG);os.start(t);os.stop(t+dur+.05);}
+ function noise(t,dur,o={}){if(!ctx)return;const sc=ctx.createBufferSource();sc.buffer=noiseBuf;sc.loop=true;let node=sc;
+  const flt=(type,f,q)=>{const x=ctx.createBiquadFilter();x.type=type;x.frequency.setValueAtTime(f,t);if(q)x.Q.value=q;node.connect(x);node=x;return x;};
+  if(o.hp)flt('highpass',o.hp);if(o.lp)flt('lowpass',o.lp);if(o.bp){const x=flt('bandpass',o.bp,o.q||1);if(o.sweep)x.frequency.exponentialRampToValueAtTime(o.sweep,t+dur);}
+  const g=ctx.createGain(),v=o.vol==null?.2:o.vol;g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+(o.a||.003));g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  node.connect(g);g.connect(o.dest||sfxG);sc.start(t,Math.random());sc.stop(t+dur+.05);}
+ /* ---- 배경음악: 분위기별 자동 작곡 루프 ---- */
+ const MOODS={
+  title:{bpm:112,ch:[[60,64,67],[55,59,62],[57,60,64],[53,57,60]],sc:[72,74,76,79,81,84],arp:'square',av:.03,pad:'triangle',pv:.022,kick:[0,8],snare:[4,12],hat:2,bass:'triangle',bv:.13,mel:.4},
+  office:{bpm:84,ch:[[53,57,60,64],[52,55,59,62],[50,53,57,60],[48,52,55,59]],sc:[72,74,76,79,81],arp:'triangle',av:.035,pad:'sine',pv:.028,kick:[0,10],snare:[8],hat:4,bass:'sine',bv:.17,mel:.25},
+  search:{bpm:72,ch:[[57,60,64],[53,57,60],[48,52,55],[55,59,62]],sc:[69,72,74,76,79],arp:'sine',av:.045,pad:'sine',pv:.028,kick:[0],snare:[],hat:0,bass:'sine',bv:.14,mel:.3},
+  exec:{bpm:92,ch:[[50,53,57],[46,50,53],[53,57,60],[48,52,55]],sc:[74,77,79,81,84],arp:'sawtooth',av:.016,pad:'triangle',pv:.03,kick:[0,8],snare:[4,12],hat:2,bass:'triangle',bv:.16,mel:.22},
+ };
+ function schedStep(t){const M=MOODS[mood];if(!M)return;const s=step%16,ch=M.ch[bar%M.ch.length],sp=60/M.bpm/4;
+  if(s===0)ch.forEach(n=>tone(mf(n),t,sp*16*.97,{type:M.pad,vol:M.pv,a:.3,dest:lp}));
+  if(s===0||s===8)tone(mf(ch[0]-12),t,sp*3.5,{type:M.bass,vol:M.bv,a:.01,dest:lp});
+  if(s===6||s===14)tone(mf(ch[2]-12),t,sp*1.8,{type:M.bass,vol:M.bv*.8,a:.01,dest:lp});
+  if(s%2===0)tone(mf(ch[(s/2)%ch.length]+12),t,sp*1.6,{type:M.arp,vol:M.av,dest:lp});
+  if(s%4===2&&Math.random()<M.mel)tone(mf(M.sc[Math.floor(Math.random()*M.sc.length)]),t,sp*3,{type:'triangle',vol:.045,a:.02,dest:lp});
+  if(M.kick.includes(s))tone(130,t,.18,{vol:mood==='office'||mood==='search'?.22:.32,slide:42,dest:bgmG});
+  if(M.snare.includes(s))noise(t,.13,{bp:1800,vol:.05,dest:bgmG});
+  if(M.hat&&s%M.hat===0)noise(t,.035,{hp:7500,vol:s%4===2?.03:.018,dest:bgmG});}
+ function startLoop(){if(!ctx||!mood||timer)return;step=0;bar=0;nextT=ctx.currentTime+.08;
+  bgmG.gain.cancelScheduledValues(ctx.currentTime);bgmG.gain.setValueAtTime(.0001,ctx.currentTime);bgmG.gain.linearRampToValueAtTime(cfg.bgm?BGMV:.0001,ctx.currentTime+1.2);
+  timer=setInterval(()=>{const M=MOODS[mood];if(!M||!ctx)return;const sp=60/M.bpm/4;while(nextT<ctx.currentTime+.15){schedStep(nextT);nextT+=sp;step++;if(step%16===0)bar++;}},30);}
+ function stopLoop(){if(timer)clearInterval(timer);timer=null;}
+ function setMood(m){if(m===mood)return;mood=m;if(!ctx)return;stopLoop();if(m)startLoop();else{bgmG.gain.cancelScheduledValues(ctx.currentTime);bgmG.gain.setValueAtTime(.0001,ctx.currentTime);}}
+ /* ---- 효과음 ---- */
+ const FX={
+  click:t=>tone(1250,t,.045,{type:'square',vol:.03,slide:800}),
+  type:t=>{noise(t,.022,{hp:2500,vol:.07});tone(1800+Math.random()*900,t,.012,{type:'square',vol:.012});},
+  coin:t=>{tone(988,t,.09,{type:'square',vol:.07});tone(1319,t+.08,.45,{type:'square',vol:.07});},
+  payday:t=>{[72,76,79,84,88].forEach((n,i)=>tone(mf(n),t+i*.07,.35,{type:'triangle',vol:.1}));FX.coin(t+.42);noise(t+.42,.35,{hp:6000,vol:.05});},
+  tick:t=>tone(2600,t,.018,{type:'square',vol:.012}),
+  stamp:t=>{tone(120,t,.24,{vol:.6,slide:38});noise(t,.12,{lp:900,vol:.45});},
+  success:t=>[72,76,79,84].forEach((n,i)=>tone(mf(n),t+i*.09,i===3?.7:.18,{type:'triangle',vol:.1})),
+  fail:t=>{tone(392,t,.28,{type:'square',vol:.05,slide:220});tone(311,t+.26,.5,{type:'square',vol:.05,slide:150});},
+  fanfare:t=>{[67,72,76,79].forEach((n,i)=>tone(mf(n),t+i*.12,.16,{type:'square',vol:.06}));[72,76,79,84].forEach(n=>{tone(mf(n),t+.5,1.4,{type:'triangle',vol:.06});tone(mf(n),t+.5,1.2,{type:'square',vol:.018});});for(let i=0;i<8;i++)noise(t+i*.05,.05,{bp:1800,vol:.05});noise(t+.5,1.1,{hp:5000,vol:.07});},
+  alarm:t=>{for(let i=0;i<4;i++)tone(i%2?660:880,t+i*.18,.17,{type:'sawtooth',vol:.045});},
+  ding:t=>{tone(1318,t,.6,{vol:.11});tone(1046,t+.18,.9,{vol:.11});},
+  tense:t=>{[48,51,54,57].forEach(n=>tone(mf(n),t,.55,{type:'sawtooth',vol:.025}));tone(mf(36),t,.7,{type:'triangle',vol:.18,slide:mf(30)});},
+  door:t=>{tone(85,t,.28,{vol:.4,slide:48});noise(t,.22,{lp:500,vol:.3});},
+  step:t=>noise(t,.06,{lp:700,vol:.16}),
+  waves:t=>{noise(t,2.6,{lp:650,vol:.13,a:1});noise(t+1.3,2.3,{lp:900,vol:.09,a:.9});[84,88].forEach((n,i)=>tone(mf(n),t+.6+i*.5,.25,{vol:.03}));},
+  pour:t=>noise(t,1,{bp:1400,sweep:3800,q:3,vol:.14,a:.05}),
+  roll:t=>{for(let i=0;i<18;i++)noise(t+i*.045,.05,{bp:1500+i*25,vol:.03+i*.003});FX.hit(t+.85);},
+  hit:t=>{tone(65,t,.55,{vol:.45,slide:40});noise(t,.9,{hp:4000,vol:.12});},
+  correct:t=>{tone(1319,t,.08,{type:'square',vol:.05});tone(1568,t+.07,.2,{type:'square',vol:.05});},
+  wrong:t=>tone(150,t,.32,{type:'sawtooth',vol:.07,slide:105}),
+  write:t=>{for(let i=0;i<12;i++)noise(t+i*.07+Math.random()*.03,.05,{bp:3500,q:2,vol:.045});},
+  page:t=>noise(t,.18,{bp:2500,sweep:900,vol:.09}),
+  clink:t=>{tone(2093,t,.45,{vol:.05});tone(2637,t+.02,.4,{vol:.04});},
+  shutter:t=>{for(let i=0;i<3;i++)noise(t+i*.25,.045,{hp:3000,vol:.16});},
+  sneak:t=>[45,47,45,48,45].forEach((n,i)=>tone(mf(n),t+i*.22,.14,{type:'triangle',vol:.13})),
+  swing:t=>{noise(t,.16,{bp:2000,sweep:6000,vol:.09});tone(1800,t+.16,.06,{type:'square',vol:.04});},
+  haha:t=>[0,1,2].forEach(i=>tone(330,t+i*.14,.1,{type:'triangle',vol:.09,slide:250})),
+  good_end:t=>[60,64,67,72,71,72,76,79,84].forEach((n,i)=>tone(mf(n+12),t+i*.16,i===8?1.2:.4,{type:'triangle',vol:.09})),
+  bad_end:t=>[69,67,64,60,57].forEach((n,i)=>tone(mf(n),t+i*.32,.7,{type:'sine',vol:.12})),
+ };
+ function sfx(name,delay=0){if(!ctx||!cfg.sfx||!FX[name])return;try{FX[name](ctx.currentTime+.01+delay);}catch(e){}}
+ function action(id,dur){if(!ctx||!cfg.sfx)return;const t=ctx.currentTime+.05;try{
+  if(['work','strat','ot','focus'].includes(id)){const n=Math.floor(dur*(id==='ot'?6:9));for(let i=0;i<n;i++)FX.type(t+Math.random()*dur*.85);}
+  if(id==='off'){for(let i=0;i<6;i++)FX.step(t+dur*.12+i*.16);FX.door(t+dur*.6);}
+  if(id==='coffee')FX.pour(t+dur*.25);if(id==='care')FX.clink(t+dur*.4);if(id==='vac'||id==='rest')FX.waves(t+.15);
+  if(id==='hunt')FX.sneak(t+.1);if(id==='suck')FX.haha(t+dur*.4);if(id==='study'||id==='exam')for(let i=0;i<3;i++)FX.page(t+i*dur/3);
+  if(id==='golf')FX.swing(t+dur*.4);if(id==='bet')FX.roll(t+dur*.25);if(id==='cut')FX.stamp(t+dur*.5);if(id==='media')FX.shutter(t+.3);}catch(e){}}
+ function scan(h){let m='search';if(h.includes('class="hero"'))m='title';else if(h.includes('>ENDING<'))m=null;else if(S&&S.employed)m=isExec()?'exec':'office';setMood(m);
+  if(!ctx||!cfg.sfx)return;
+  if(h.includes('월급날!'))sfx('payday');
+  else if(h.includes('class="stamp')){sfx('stamp',.12);sfx(h.includes('stamp blue')||h.includes('시말서 수리')?'success':'fail',.5);}
+  else if(h.includes('class="grade'))sfx('roll');
+  else if(h.includes('class="strikes"'))sfx('alarm');
+  else if(h.includes('bigicon')&&/승진!|임원 승진/.test(h))sfx('fanfare');
+  else if(/최종 합격|이직 성공|이의 제기 성공/.test(h))sfx('success');
+  else if(/탈락|명단에 없다|이의 제기 기각/.test(h))sfx('fail');
+  else if(h.includes('⭕ 정답'))sfx('correct');else if(/❌ 오답|⏰ 시간 초과/.test(h))sfx('wrong');
+  else if(/시말서 작성|다시 써 와!/.test(h))sfx('write');
+  else if(h.includes('<div class="bigicon">📦</div>'))sfx('door');
+  else if(h.includes('npc-ava')){if(h.includes('억까'))sfx('tense');else if(h.includes('카톡'))sfx('ding');else if(h.includes('회식'))sfx('clink');}}
+ /* ---- 소리 설정 위젯 ---- */
+ function uiSync(){const bt=$id('auB');if(!bt)return;const on=cfg.bgm||cfg.sfx;bt.textContent=on?'🔊':'🔇';bt.classList.toggle('on',!!(ctx&&ctx.state==='running'&&cfg.bgm));}
+ function ui(){if(typeof document.createElement!=='function'||!document.body)return;const d=document.createElement('div');d.id='au';
+  d.innerHTML=`<button id="auB" title="소리 설정">🔊</button><div id="auP"><b>🎵 사운드</b><label><input type="checkbox" id="auM"> 배경음악</label><label><input type="checkbox" id="auS"> 효과음</label><label>🔈 <input type="range" id="auV" min="0" max="1" step="0.05"> 🔊</label><small>화면을 한 번 클릭하면 재생돼</small></div>`;
+  document.body.appendChild(d);const M=$id('auM'),X=$id('auS'),V=$id('auV');M.checked=cfg.bgm;X.checked=cfg.sfx;V.value=cfg.vol;
+  const persist=()=>{store('osAudio',JSON.stringify(cfg));uiSync();};
+  $id('auB').addEventListener('click',()=>{unlock();d.classList.toggle('open');});
+  M.addEventListener('change',()=>{cfg.bgm=M.checked;unlock();if(ctx){bgmG.gain.cancelScheduledValues(ctx.currentTime);bgmG.gain.setTargetAtTime(cfg.bgm?BGMV:.0001,ctx.currentTime,.2);}persist();});
+  X.addEventListener('change',()=>{cfg.sfx=X.checked;unlock();if(ctx)sfxG.gain.value=cfg.sfx?.8:0;persist();});
+  V.addEventListener('input',()=>{cfg.vol=+V.value;unlock();if(ctx)master.gain.value=cfg.vol;persist();});
+  uiSync();}
+ if(typeof document.addEventListener==='function'){
+  ['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,unlock,true));
+  document.addEventListener('click',e=>{const t=e.target;if(t&&t.closest&&t.closest('button,.tile,.qopt')&&!t.closest('#au'))sfx('click');},true);
+  document.addEventListener('visibilitychange',()=>{if(ctx){if(document.hidden)ctx.suspend();else ctx.resume();}});}
+ return{sfx,action,scan,ui,ending:good=>{setMood(null);sfx(good?'good_end':'bad_end',.2);}};})();
+
 
 /* ===================== 데이터 ===================== */
 const RANKS=['사원','대리','과장','차장','부장','상무','전무','부사장','사장'];
@@ -412,8 +534,8 @@ function sceneHtml(st={}){const c=C()||COMPANIES[2];const ex=isExec();
  <div class="beachlayer"><span style="left:8%;top:44%">🌴</span><span style="left:70%;top:58%">⛱️</span><span style="left:84%;top:12%">☀️</span><span style="left:40%;top:46%;font-size:30px">⛵</span></div>
  <div id="fx"></div></div>`;}
 function animate(a,ch,done){const endM=a.end*60+(a.endMin||0);const st={time:a.beach?'day':tclass(endM),clock:fmt(endM),me:a.meEnd||a.me,left:a.pos!=null?a.pos:44,bubble:a.lines?a.lines[a.lines.length-1]:'',beach:a.beach,away:a.away,gone:a.gone};
- if(SPEED===0||!CAN_ANIM)return done(st);
- const tk=TK,dur=SPEED===2?1300:2800,startM=9*60;
+ if(SPEED===0||!CAN_ANIM){Snd.action(a.id,.6);return done(st);}
+ const tk=TK,dur=SPEED===2?1300:2800,startM=9*60;Snd.action(a.id,dur/1000);
  const me=$id('me'),meE=$id('meE'),bub=$id('bub'),scene=$id('scene'),clk=$id('clk');if(!scene)return done(st);
  const panel=$id('panel');if(panel)panel.classList.add('busy');
  meE.textContent=a.me||'🧑‍💻';
@@ -433,7 +555,7 @@ function titleScreen(){const sv=loadSave();S=S||newState();
  screen(()=>`<section class="card"><div class="hero"><div class="big">🏢💼🚇</div><h1>오늘도 출근</h1><p>26살 신입사원부터 60살 정년, 혹은 사장실까지.<br>야근·회식·억까·정치질·인사평가·승진시험을 버티는 회사생활 시뮬레이터</p></div>
  ${sv?`<button class="btn gold" style="margin-top:18px" onclick="${b(()=>{S=sv;resumeGame();})}">▶ 이어하기 — ${sv.name} ${sv.everHired?RANKS[sv.rank]:'취준생'} · ${sv.age}세 · ${sv.cal}년 ${sv.month}월</button>`:''}
  <button class="btn main" style="margin-top:10px" onclick="${b(()=>{S=newState();drawStart();})}">🆕 새 인생 시작하기</button>
- <div class="info" style="margin-top:14px">💡 <b>한 달에 행동 3번</b>을 고르면 사무실에서 시간이 흘러가. 월말엔 돌발 이벤트와 월급날, 12월엔 인사평가와 연봉협상이 있고, 1월엔 승진시험이 열려. 매달 자동 저장돼.</div>
+ <div class="info" style="margin-top:14px">💡 <b>한 달에 행동 3번</b>을 고르면 사무실에서 시간이 흘러가. 월말엔 돌발 이벤트와 월급날, 12월엔 인사평가와 연봉협상이 있고, 1월엔 승진시험이 열려. 매달 자동 저장돼.<br>🎧 오른쪽 아래 🔊 버튼에서 배경음악·효과음·볼륨을 조절할 수 있어.</div>
  ${collectionHtml()}</section>`);}
 function resumeGame(){if(!S.employed)return jobBoard();officeScreen();}
 function drawStart(){const el=$id('nm');if(el&&el.value!==undefined)S.name=el.value||'김신입';
@@ -616,7 +738,7 @@ function typoGame(round,score){if(round>=5){const fx={perf:score*2,skill:1,hp:-3
   return officeScreen({time:'evening',clock:'18:00',me:score>=3?'😎':'😵',bubble:score>=3?'검토 끝!':'망했다…'},()=>`<section class="card"><h2>🎯 집중 업무 결과: ${score}/5</h2><div class="txt">${msg}</div>${chipsHtml(ch)}<button class="btn main" onclick="${b(()=>guard(proceed))}">${S.ap>0?'확인 ▶':'월말 결산하러 가기 ▶'}</button></section>`);}
  const [right,wrong]=pick(TYPO);const odd=R(0,15);const tk=TK+1;const sec=SPEED===2?5:7;
  screen(()=>hud()+`<section class="card"><h2>🎯 보고서 오타 찾기 — ${round+1}/5</h2><p class="k">16개 단어 중 <b>틀린 단어 하나</b>를 ${sec}초 안에 찾아 클릭해! (현재 ${score}점)</p>
- <div class="timer"><div id="tm"></div></div><div class="grid4">${Array.from({length:16},(_,i)=>`<button class="tile" onclick="${b(()=>typoGame(round+1,score+(i===odd?1:0)))}">${i===odd?wrong:right}</button>`).join('')}</div></section>`,
+ <div class="timer"><div id="tm"></div></div><div class="grid4">${Array.from({length:16},(_,i)=>`<button class="tile" onclick="${b(()=>{Snd.sfx(i===odd?'correct':'wrong');typoGame(round+1,score+(i===odd?1:0));})}">${i===odd?wrong:right}</button>`).join('')}</div></section>`,
  ()=>{if(!CAN_ANIM)return;const tm=$id('tm');requestAnimationFrame(()=>{tm.style.transitionDuration=sec+'s';tm.style.width='0%';});setTimeout(()=>{if(TK===tk)typoGame(round+1,score);},sec*1000);});}
 
 /* ===================== 이벤트 ===================== */
@@ -920,7 +1042,7 @@ function payday(next){const c=C();const r10=x=>Math.round(x/10)*10;const notes=[
  <div class="bal">💰 잔고 <span id="bal">${won(before)}</span></div>
  <p class="tip" style="text-align:center">${pick(['월급은 통장을 스쳐 지나갈 뿐…','로그인했다가 바로 로그아웃하는 월급','이번 달도 사이버 머니였다','월급 들어온 날이 제일 가난한 날'])} · 지금까지 받은 월급 총액 ${eok(S.stats.earned)}</p>
  <button class="btn main" onclick="${b(()=>guard(next))}">${S.month===12?'📊 연말 인사평가 받으러 가기 ▶':'다음 달로 ▶'}</button></section>`,()=>countUp('bal',before,S.money));}
-function countUp(id,from,to){const el=$id(id);if(!el||!CAN_ANIM)return;const tk=TK;setTimeout(()=>{const t0=performance.now();const st=t=>{if(tk!==TK)return;const k=Math.min(1,(t-t0)/1300);el.textContent=won(from+(to-from)*(1-Math.pow(1-k,3)));el.style.color=to<from?'#e5484d':'#16a34a';if(k<1)requestAnimationFrame(st);};requestAnimationFrame(st);},500);}
+function countUp(id,from,to){const el=$id(id);if(!el||!CAN_ANIM)return;const tk=TK;setTimeout(()=>{const t0=performance.now();let last=0;const st=t=>{if(tk!==TK)return;const k=Math.min(1,(t-t0)/1300);if(t-last>75&&k<1){Snd.sfx('tick');last=t;}el.textContent=won(from+(to-from)*(1-Math.pow(1-k,3)));el.style.color=to<from?'#e5484d':'#16a34a';if(k<1)requestAnimationFrame(st);};requestAnimationFrame(st);},500);}
 
 /* ===================== 인사평가 ===================== */
 const UNFAIR=['"이번엔 승진 앞둔 박과장한테 좋은 등급 몰아주기로 했어. 내년엔 꼭 챙겨줄게~" (작년에도 들은 말이다)','"평가는 원래 연차 순이야. 이해하지?"','"팀에 S·A 쿼터가 정해져 있어서… 미안하다."','"자네가 잘한 건 아는데, 본부장님이 자네 얼굴을 잘 모르시더라고."'];
@@ -1054,9 +1176,9 @@ function ending(id){const e=ENDINGS[id];markSeen(id);store('officeSim2',null);
  </table>
  ${S.career.length?`<h3 style="margin-top:14px">🗂️ 경력 기록</h3><ul class="career">${S.career.map(x=>`<li>${x.icon} <b>${x.c}</b> · ${x.from} ~ ${x.to||'현재'} · 입사 시 ${x.rank}${x.why?` · <span class="k">${x.why}</span>`:''}</li>`).join('')}</ul>`:''}
  ${collectionHtml()}
- <button class="btn main" style="margin-top:16px" onclick="${b(()=>{S=newState();drawStart();})}">🔄 새 인생 시작하기</button><button class="btn ghost" onclick="${b(titleScreen)}">타이틀로</button></section>`,['ceo','fire','retire'].includes(id)?confetti:null);}
+ <button class="btn main" style="margin-top:16px" onclick="${b(()=>{S=newState();drawStart();})}">🔄 새 인생 시작하기</button><button class="btn ghost" onclick="${b(titleScreen)}">타이틀로</button></section>`,['ceo','fire','retire'].includes(id)?confetti:null);Snd.ending(['ceo','fire','retire','exec_retire','quit_life'].includes(id));}
 
-titleScreen();
+Snd.ui();titleScreen();
 </script>
 </body>
 </html>
